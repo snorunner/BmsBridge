@@ -11,6 +11,9 @@ out/
 *.user
 *.suo
 
+# Settings files
+appsettings*
+
 # Logs
 *.log
 
