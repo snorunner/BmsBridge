@@ -7,4 +7,5 @@ public record GeneralSettings
     public int e2_max_buffer_length { get; init; } = 100;
     public int log_file_max_size_mb { get; init; } = 10;
     public int log_files_max_number { get; init; } = 3;
+    public bool keep_alive { get; init; }
 }

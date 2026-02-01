@@ -20,5 +20,35 @@ builder.Services.Configure<NetworkSettings>(builder.Configuration.GetSection("Ne
 
 // builder.Services.AddHostedService<Worker>();
 
-var app = builder.Build();
-app.Run();
+
+// TEMPORARY MANUAL TEST HARNESS
+if (args.Contains("--test-e2"))
+{
+    var endpoint = new Uri("http://10.128.223.180:14106/JSON-RPC"); // your E2 IP
+
+    var settings = new GeneralSettings
+    {
+        keep_alive = false,
+        http_request_delay_seconds = 1,
+        http_retry_count = 0,
+        http_timeout_delay_seconds = 5
+    };
+
+    var executor = new HttpPipelineExecutor(settings);
+
+    var op = new E2GetControllerListOperation(endpoint);
+
+    await op.ExecuteAsync(executor, CancellationToken.None);
+
+    Console.WriteLine("Raw response:");
+    Console.WriteLine(op.RawJson);
+
+    // Save replay
+    Directory.CreateDirectory("ReplayData");
+    File.WriteAllText("ReplayData/E2.GetControllerList.txt", op.RawJson ?? "");
+
+    return;
+}
+
+// var app = builder.Build();
+// app.Run();
