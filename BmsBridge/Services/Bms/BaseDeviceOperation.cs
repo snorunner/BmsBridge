@@ -6,7 +6,7 @@ public abstract class BaseDeviceOperation : IDeviceOperation
     public abstract string Name { get; }
 
     protected readonly Uri Endpoint;
-    protected object? ExportObject { get; set; }
+    public object? ExportObject { get; set; }
 
     protected BaseDeviceOperation(Uri endpoint)
     {
