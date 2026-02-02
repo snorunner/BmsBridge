@@ -45,3 +45,6 @@ publish/
 
 # Replay data
 ReplayData/
+
+# Development certificates
+DevelopmentKeys/

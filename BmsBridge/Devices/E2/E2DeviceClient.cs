@@ -74,10 +74,10 @@ public sealed class E2DeviceClient : IDeviceClient
 
 
             // Temporary for testing
-            Console.WriteLine(normalized.ToJsonString(new JsonSerializerOptions
-            {
-                WriteIndented = true
-            }));
+            // Console.WriteLine(normalized.ToJsonString(new JsonSerializerOptions
+            // {
+            //     WriteIndented = true
+            // }));
 
             // TODO: send normalized data to IoT Hub
         }
@@ -92,6 +92,12 @@ public sealed class E2DeviceClient : IDeviceClient
             dataAddress: $"{_primaryController}:ALARMS",
             rawData: (JsonObject?)alarmOp.ToJson()
         );
+
+        // Temporary for testing
+        // Console.WriteLine(normalizedAlarms.ToJsonString(new JsonSerializerOptions
+        // {
+        //     WriteIndented = true
+        // }));
 
         // TODO: send normalized alarms to IoT Hub
     }
