@@ -24,7 +24,9 @@ public sealed class E2GetControllerListOperation : E2BaseDeviceOperation
 
     protected override async Task ParseAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        var txt = await response.Content.ReadAsStringAsync(ct);
+
+        var json = JsonNode.Parse(txt);
 
         var resultArray = json?["result"] as JsonArray;
 

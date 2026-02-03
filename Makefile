@@ -1,4 +1,4 @@
-SOLUTION=BmsBridge.sln
+SOLUTION=BmsBridge.slnx
 PROJECT=BmsBridge
 TEST_PROJECT=BmsBridge.Tests
 

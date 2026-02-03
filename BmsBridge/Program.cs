@@ -22,8 +22,8 @@ builder.Services.Configure<GeneralSettings>(builder.Configuration.GetSection("Ge
 builder.Services.Configure<NetworkSettings>(builder.Configuration.GetSection("NetworkSettings"));
 
 // Singletons
-// builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
-builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
+// builder.Services.AddSingleton<IIotDevice, AzureIotDevice>(); // prod
+builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>(); // test
 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 {
     builder.Services.AddSingleton<ICertificateSource>(sp =>
@@ -42,18 +42,21 @@ builder.Services.AddSingleton<KeyvaultService>();
 builder.Services.AddSingleton<DpsService>();
 builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
 builder.Services.AddSingleton<INormalizerService, NormalizerService>();
+// builder.Services.AddSingleton<IDeviceRunnerFactory, DeviceRunnerFactory>(); // prod
+builder.Services.AddSingleton<IDeviceRunnerFactory, ReplayDeviceRunnerFactory>(); // test
 
 // Workers
-builder.Services.AddHostedService<DpsTestWorker2>();
+// builder.Services.AddHostedService<DpsTestWorker2>();
+builder.Services.AddHostedService<DeviceWorker>();
 
 
 // TEMPORARY MANUAL TEST HARNESS
 if (args.Contains("--test-operator"))
 {
-    // var endpoint = new Uri("http://10.128.223.180:14106/JSON-RPC");
-    // var loader = new EmbeddedE2IndexMappingProvider();
+    var endpoint = new Uri("http://10.128.223.180:14106/JSON-RPC");
+    var loader = new EmbeddedE2IndexMappingProvider();
 
-    var endpoint = new Uri("http://10.158.71.180/http/xml.cgi");
+    // var endpoint = new Uri("http://10.158.71.180/http/xml.cgi");
 
     var settings = new GeneralSettings
     {
@@ -65,8 +68,9 @@ if (args.Contains("--test-operator"))
 
     var executor = new HttpPipelineExecutor(settings);
 
+    var op = new E2GetControllerListOperation(endpoint, NullLoggerFactory.Instance);
     // var op = new E2GetPointsOperation(endpoint, "HVAC/LTS", "AC1 FAN", loader.GetPointsForCellType(33), NullLoggerFactory.Instance);
-    var op = new DanfossReadDevicesOperation(endpoint, NullLoggerFactory.Instance);
+    // var op = new DanfossReadDevicesOperation(endpoint, NullLoggerFactory.Instance);
 
 
     await op.ExecuteAsync(executor, CancellationToken.None);
