@@ -50,7 +50,10 @@ builder.Services.AddHostedService<DpsTestWorker2>();
 // TEMPORARY MANUAL TEST HARNESS
 if (args.Contains("--test-operator"))
 {
-    var endpoint = new Uri("http://10.128.223.180:14106/JSON-RPC");
+    // var endpoint = new Uri("http://10.128.223.180:14106/JSON-RPC");
+    // var loader = new EmbeddedE2IndexMappingProvider();
+
+    var endpoint = new Uri("http://10.158.71.180/http/xml.cgi");
 
     var settings = new GeneralSettings
     {
@@ -62,9 +65,9 @@ if (args.Contains("--test-operator"))
 
     var executor = new HttpPipelineExecutor(settings);
 
-    var loader = new EmbeddedE2IndexMappingProvider();
+    // var op = new E2GetPointsOperation(endpoint, "HVAC/LTS", "AC1 FAN", loader.GetPointsForCellType(33), NullLoggerFactory.Instance);
+    var op = new DanfossReadDevicesOperation(endpoint, NullLoggerFactory.Instance);
 
-    var op = new E2GetPointsOperation(endpoint, "HVAC/LTS", "AC1 FAN", loader.GetPointsForCellType(33), NullLoggerFactory.Instance);
 
     await op.ExecuteAsync(executor, CancellationToken.None);
 
