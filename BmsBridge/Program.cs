@@ -40,8 +40,14 @@ builder.Services.AddSingleton<CertificateProvider>();
 builder.Services.AddSingleton<KeyvaultService>();
 builder.Services.AddSingleton<DpsService>();
 
+// E2 indexmapper
+builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
+
+// Normalizer
+builder.Services.AddSingleton<INormalizerService, NormalizerService>();
+
 // Workers
-builder.Services.AddHostedService<DpsTestWorker>();
+builder.Services.AddHostedService<DpsTestWorker2>();
 
 
 // TEMPORARY MANUAL TEST HARNESS

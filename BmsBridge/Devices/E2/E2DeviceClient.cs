@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using System.Text.Json;
 
 public sealed class E2DeviceClient : BaseDeviceClient
 {
@@ -15,8 +14,13 @@ public sealed class E2DeviceClient : BaseDeviceClient
         IHttpPipelineExecutor executor,
         IE2IndexMappingProvider indexProvider,
         INormalizerService normalizer,
-        ILoggerFactory loggerFactory
-        ) : base(endpoint: endpoint, executor: executor, normalizer: normalizer, loggerFactory: loggerFactory)
+        ILoggerFactory loggerFactory,
+        IIotDevice iotDevice
+        ) : base(endpoint: endpoint,
+                executor: executor,
+                normalizer: normalizer,
+                loggerFactory: loggerFactory,
+                iotDevice: iotDevice)
     {
         _indexProvider = indexProvider;
     }
@@ -43,6 +47,8 @@ public sealed class E2DeviceClient : BaseDeviceClient
         if (_primaryController is null || _cells is null)
             throw new InvalidOperationException("DeviceClient not initialized.");
 
+        JsonArray polledData = new();
+
         foreach (var cell in _cells)
         {
             var points = _indexProvider.GetPointsForCellType(cell.CellType);
@@ -68,14 +74,7 @@ public sealed class E2DeviceClient : BaseDeviceClient
                 rawData: (JsonObject?)op.ToJson()
             );
 
-
-            // Temporary for testing
-            // Console.WriteLine(normalized.ToJsonString(new JsonSerializerOptions
-            // {
-            //     WriteIndented = true
-            // }));
-
-            // TODO: send normalized data to IoT Hub
+            polledData.Add(normalized);
         }
 
         // Alarms
@@ -89,12 +88,9 @@ public sealed class E2DeviceClient : BaseDeviceClient
             rawData: (JsonObject?)alarmOp.ToJson()
         );
 
-        // Temporary for testing
-        Console.WriteLine(normalizedAlarms.ToJsonString(new JsonSerializerOptions
-        {
-            WriteIndented = true
-        }));
+        polledData.Add(normalizedAlarms);
 
-        // TODO: send normalized alarms to IoT Hub
+        var outData = _dataWarehouse.ProcessIncoming(polledData);
+        await _iotDevice.SendMessageAsync(outData, ct);
     }
 }
