@@ -21,8 +21,9 @@ builder.Services.Configure<AzureSettings>(builder.Configuration.GetSection("Azur
 builder.Services.Configure<GeneralSettings>(builder.Configuration.GetSection("GeneralSettings"));
 builder.Services.Configure<NetworkSettings>(builder.Configuration.GetSection("NetworkSettings"));
 
-// DPS pipeline
-builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
+// Singletons
+// builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
+builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 {
     builder.Services.AddSingleton<ICertificateSource>(sp =>
@@ -39,11 +40,7 @@ else
 builder.Services.AddSingleton<CertificateProvider>();
 builder.Services.AddSingleton<KeyvaultService>();
 builder.Services.AddSingleton<DpsService>();
-
-// E2 indexmapper
 builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
-
-// Normalizer
 builder.Services.AddSingleton<INormalizerService, NormalizerService>();
 
 // Workers
