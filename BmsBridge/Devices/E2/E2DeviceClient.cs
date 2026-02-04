@@ -29,13 +29,13 @@ public sealed class E2DeviceClient : BaseDeviceClient
 
     public override async Task InitializeAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("Initializing E2 device client");
+        _logger.LogInformation($"Initializing E2 device client at {_endpoint}");
 
         _primaryController = await FetchPrimaryControllerAsync(ct);
         _cells = await FetchCellListAsync(ct);
 
         _initialized = true;
-        _logger.LogInformation("E2 device client initialized successfully");
+        _logger.LogInformation($"E2 device client initialized successfully at {_endpoint}");
     }
 
     public override async Task PollAsync(CancellationToken ct = default)

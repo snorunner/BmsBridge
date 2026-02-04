@@ -29,9 +29,17 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
         switch (deviceSettings.DeviceType)
         {
             case BmsType.EmersonE2:
-                var endpoint = new Uri($"http://{deviceSettings.IP}:14106/JSON-RPC");
                 return new E2DeviceRunner(
-                    endpoint,
+                    new Uri($"http://{deviceSettings.IP}:14106/JSON-RPC"),
+                    executor,
+                    _indexProvider,
+                    _normalizer,
+                    _loggerFactory,
+                    _iotDevice
+                );
+            case BmsType.Danfoss:
+                return new DanfossDeviceRunner(
+                    new Uri($"http://{deviceSettings.IP}/http/xml.cgi"),
                     executor,
                     _indexProvider,
                     _normalizer,

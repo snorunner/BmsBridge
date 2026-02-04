@@ -6,9 +6,4 @@ public sealed class DanfossReadUnitsOperation : DanfossBaseDeviceOperation
         : base(endpoint, loggerFactory)
     {
     }
-
-    protected override async Task ParseAsync(HttpResponseMessage response, CancellationToken ct)
-    {
-        var txt = await response.Content.ReadAsStringAsync(ct);
-    }
 }

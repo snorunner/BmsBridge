@@ -1,5 +1,7 @@
 using System.Xml.Linq;
 using System.Text;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
 {
@@ -50,5 +52,18 @@ public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
     protected override HttpRequestMessage BuildRequest()
     {
         return BuildRequest(Name);
+    }
+
+    protected override async Task ParseAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        var xmlResponse = await response.Content.ReadAsStringAsync(ct);
+        var xDoc = XDocument.Parse(xmlResponse);
+
+        string jsonText = JsonConvert.SerializeXNode(xDoc, Formatting.None, omitRootObject: false);
+        JObject json = JObject.Parse(jsonText);
+
+        var respElement = json?["resp"];
+        ExportObject = respElement;
+        // Console.WriteLine(json.ToString());
     }
 }
