@@ -21,7 +21,7 @@ public sealed class DanfossReadDevicesOperation : DanfossBaseDeviceOperation
         JObject json = JObject.Parse(jsonText);
 
         // Debug print
-        Console.WriteLine(json.ToString(Formatting.Indented));
+        // Console.WriteLine(json.ToString(Formatting.Indented));
 
         var respElement = json["resp"];
         ExportObject = respElement;

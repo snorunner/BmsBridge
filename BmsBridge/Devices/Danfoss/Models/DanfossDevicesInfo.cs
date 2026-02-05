@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-public sealed class DanfossDevicesInfo
+public class DanfossDevicesInfo
 {
     public string Nodetype { get; init; }
     public string Node { get; init; }
@@ -8,7 +8,7 @@ public sealed class DanfossDevicesInfo
     public string Point { get; init; }
     public JsonObject Data { get; }
 
-    public string DeviceKey => $"{Nodetype}:{Node}:{Mod}:{Point}";
+    public virtual string DeviceKey => $"nodetype{Nodetype}:node{Node}:mod{Mod}:point{Point}";
 
     public DanfossDevicesInfo(JsonObject data)
     {

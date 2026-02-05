@@ -5,6 +5,7 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     public override string DeviceType => "E2";
 
     private DanfossReadUnitsOperation? _controllers;
+    private DanfossReadHvacsOperation? _hvacs;
 
     public DanfossDeviceClient(
         Uri endpoint,
@@ -26,6 +27,7 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         _logger.LogInformation($"Initializing Danfoss device client device at {_endpoint}");
 
         _controllers = await GetControllersAsync(ct);
+        _hvacs = await GetHvacsAsync(ct);
     }
 
     public override async Task PollAsync(CancellationToken ct = default)
@@ -36,7 +38,10 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         // Console.WriteLine(polledData.ToString());
 
         var diff = _dataWarehouse.ProcessIncoming(polledData);
-        await _iotDevice.SendMessageAsync(diff, ct);
+        // await _iotDevice.SendMessageAsync(diff, ct);
+        //
+        // var newOp = new DanfossReadHvacsOperation(_endpoint, _loggerFactory);
+        // await newOp.ExecuteAsync(_executor, ct);
     }
 
     // ------------------------------------------------------------
@@ -46,6 +51,13 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     private async Task<DanfossReadUnitsOperation> GetControllersAsync(CancellationToken ct)
     {
         var op = new DanfossReadUnitsOperation(_endpoint, _loggerFactory);
+        await op.ExecuteAsync(_executor, ct);
+        return op;
+    }
+
+    private async Task<DanfossReadHvacsOperation> GetHvacsAsync(CancellationToken ct)
+    {
+        var op = new DanfossReadHvacsOperation(_endpoint, _loggerFactory);
         await op.ExecuteAsync(_executor, ct);
         return op;
     }
