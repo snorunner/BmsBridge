@@ -1,7 +1,7 @@
 public interface IDeviceClient
 {
     string DeviceIp { get; }
-    string DeviceType { get; }
+    BmsType DeviceType { get; }
 
     Task InitializeAsync(CancellationToken ct = default);
 

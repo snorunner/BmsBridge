@@ -7,7 +7,6 @@ public abstract class BaseDeviceOperation : IDeviceOperation
 
     protected readonly Uri Endpoint;
     protected readonly ILogger _logger;
-    public object? ExportObject { get; set; }
 
     protected BaseDeviceOperation(Uri endpoint, ILoggerFactory loggerFactory)
     {
@@ -30,27 +29,47 @@ public abstract class BaseDeviceOperation : IDeviceOperation
         }
     }
 
-    protected abstract Task ParseAsync(HttpResponseMessage response, CancellationToken ct);
-
     protected abstract HttpRequestMessage BuildRequest();
 
-    public virtual async Task ExecuteAsync(IHttpPipelineExecutor executor, CancellationToken ct)
+    public virtual async Task<DeviceOperationResult<JsonNode?>> ExecuteAsync(
+        IDeviceHttpExecutor executor,
+        CancellationToken ct)
     {
         var request = BuildRequest();
-        _logger.LogInformation($"Sending {Name} to {Endpoint}");
-        var response = await executor.SendAsync(request, ct, Name);
-        await ParseAsync(response, ct);
+
+        var httpResult = await executor.SendAsync(Endpoint.Host, request, ct, Name);
+
+        if (!httpResult.Success)
+        {
+            return DeviceOperationResult<JsonNode?>.FromError(
+                httpResult.ErrorType,
+                httpResult.ErrorMessage
+            );
+        }
+
+        return ParseResponse(httpResult.Data!);
     }
 
-    public virtual JsonNode? ToJson()
-    {
-        if (ExportObject is null)
-            return null;
+    protected abstract JsonArray? GetRelevantData(JsonNode? json);
 
-        var json = JsonSerializer.SerializeToNode(ExportObject);
-        return new JsonObject
+    protected virtual DeviceOperationResult<JsonNode?> ParseResponse(HttpResponseMessage response)
+    {
+        try
         {
-            ["data"] = json
-        };
+            var json = JsonNode.Parse(response.Content.ReadAsStringAsync().Result);
+            var res = GetRelevantData(json);
+
+            if (res is null)
+                return DeviceOperationResult<JsonNode?>.FromSuccess(new JsonArray());
+
+            return DeviceOperationResult<JsonNode?>.FromSuccess(res);
+        }
+        catch (Exception ex)
+        {
+            return DeviceOperationResult<JsonNode?>.FromError(
+                DeviceErrorType.JsonParseError,
+                ex.Message
+            );
+        }
     }
 }

@@ -7,12 +7,14 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
     private readonly INormalizerService _normalizer;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IIotDevice _iotDevice;
+    private readonly IDeviceHealthRegistry _deviceHealthRegistry;
 
     public DeviceRunnerFactory(IOptions<GeneralSettings> generalSettings,
         IE2IndexMappingProvider indexMappingProvider,
         INormalizerService normalizer,
         ILoggerFactory loggerFactory,
-        IIotDevice iotDevice
+        IIotDevice iotDevice,
+        IDeviceHealthRegistry deviceHealthRegistry
     )
     {
         _generalSettings = generalSettings.Value;
@@ -20,27 +22,24 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
         _normalizer = normalizer;
         _loggerFactory = loggerFactory;
         _iotDevice = iotDevice;
+        _deviceHealthRegistry = deviceHealthRegistry;
     }
 
     public IDeviceRunner Create(DeviceSettings deviceSettings)
     {
         IHttpPipelineExecutor executor = new HttpPipelineExecutor(_generalSettings);
+        IDeviceHttpExecutor pipelineExecutor = new DeviceHttpExecutor(
+            executor,
+            _deviceHealthRegistry,
+            _loggerFactory.CreateLogger<DeviceHttpExecutor>()
+        );
 
         switch (deviceSettings.DeviceType)
         {
             case BmsType.EmersonE2:
                 return new E2DeviceRunner(
                     new Uri($"http://{deviceSettings.IP}:14106/JSON-RPC"),
-                    executor,
-                    _indexProvider,
-                    _normalizer,
-                    _loggerFactory,
-                    _iotDevice
-                );
-            case BmsType.Danfoss:
-                return new DanfossDeviceRunner(
-                    new Uri($"http://{deviceSettings.IP}/http/xml.cgi"),
-                    executor,
+                    pipelineExecutor,
                     _indexProvider,
                     _normalizer,
                     _loggerFactory,
@@ -49,6 +48,5 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
             default:
                 throw new NotImplementedException($"Device type {deviceSettings.DeviceType} is not implemented.");
         }
-
     }
 }

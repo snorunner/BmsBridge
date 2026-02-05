@@ -42,12 +42,13 @@ builder.Services.AddSingleton<KeyvaultService>();
 builder.Services.AddSingleton<DpsService>();
 builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
 builder.Services.AddSingleton<INormalizerService, NormalizerService>();
-// builder.Services.AddSingleton<IDeviceRunnerFactory, DeviceRunnerFactory>(); // prod // TODO: Make dynamic
-builder.Services.AddSingleton<IDeviceRunnerFactory, ReplayDeviceRunnerFactory>(); // test
+builder.Services.AddSingleton<IDeviceRunnerFactory, DeviceRunnerFactory>(); // prod // TODO: Make dynamic
+// builder.Services.AddSingleton<IDeviceRunnerFactory, ReplayDeviceRunnerFactory>(); // test
 builder.Services.AddSingleton<IDeviceHealthRegistry, InMemoryDeviceHealthRegistry>();
 
 // Workers
 builder.Services.AddHostedService<DeviceWorker>();
+builder.Services.AddHostedService<HealthMonitorWorker>();
 
 
 // TEMPORARY MANUAL TEST HARNESS
@@ -70,10 +71,10 @@ if (args.Contains("--test-operator"))
 
     // var op = new E2GetControllerListOperation(endpoint, NullLoggerFactory.Instance);
     // var op = new E2GetPointsOperation(endpoint, "HVAC/LTS", "AC1 FAN", loader.GetPointsForCellType(33), NullLoggerFactory.Instance);
-    var op = new DanfossReadHvacServiceOperation(endpoint, "1", NullLoggerFactory.Instance);
+    // var op = new DanfossReadHvacServiceOperation(endpoint, "1", NullLoggerFactory.Instance);
 
 
-    await op.ExecuteAsync(executor, CancellationToken.None);
+    // await op.ExecuteAsync(executor, CancellationToken.None);
 
     return;
 }

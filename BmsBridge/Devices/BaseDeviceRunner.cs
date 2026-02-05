@@ -1,7 +1,7 @@
 public abstract class BaseDeviceRunner : IDeviceRunner
 {
     protected readonly Uri _endpoint;
-    protected readonly IHttpPipelineExecutor _executor;
+    protected readonly IDeviceHttpExecutor _pipelineExecutor;
     protected readonly IE2IndexMappingProvider _indexProvider;
     protected readonly INormalizerService _normalizer;
     protected readonly ILoggerFactory _loggerFactory;
@@ -11,7 +11,7 @@ public abstract class BaseDeviceRunner : IDeviceRunner
 
     public BaseDeviceRunner(
         Uri endpoint,
-        IHttpPipelineExecutor executor,
+        IDeviceHttpExecutor pipelineExecutor,
         IE2IndexMappingProvider indexProvider,
         INormalizerService normalizerService,
         ILoggerFactory loggerFactory,
@@ -19,7 +19,7 @@ public abstract class BaseDeviceRunner : IDeviceRunner
             )
     {
         _endpoint = endpoint;
-        _executor = executor;
+        _pipelineExecutor = pipelineExecutor;
         _indexProvider = indexProvider;
         _normalizer = normalizerService;
         _loggerFactory = loggerFactory;

@@ -4,21 +4,19 @@ public sealed class E2DeviceClient : BaseDeviceClient
 {
     private readonly IE2IndexMappingProvider _indexProvider;
 
-    private string? _primaryController;
-    private List<E2CellListInfo>? _cells;
     private bool _initialized;
 
-    public override string DeviceType => "E2";
+    public override BmsType DeviceType => BmsType.EmersonE2;
 
     public E2DeviceClient(
         Uri endpoint,
-        IHttpPipelineExecutor executor,
+        IDeviceHttpExecutor pipelineExecutor,
         IE2IndexMappingProvider indexProvider,
         INormalizerService normalizer,
         ILoggerFactory loggerFactory,
         IIotDevice iotDevice
     ) : base(endpoint: endpoint,
-            executor: executor,
+            pipelineExecutor: pipelineExecutor,
             normalizer: normalizer,
             loggerFactory: loggerFactory,
             iotDevice: iotDevice
@@ -31,108 +29,41 @@ public sealed class E2DeviceClient : BaseDeviceClient
     {
         _logger.LogInformation($"Initializing E2 device client at {_endpoint}");
 
-        _primaryController = await FetchPrimaryControllerAsync(ct);
-        _cells = await FetchCellListAsync(ct);
+        await TestPrintControllerListAsync(ct);
 
         _initialized = true;
-        _logger.LogInformation($"E2 device client initialized successfully at {_endpoint}");
     }
 
     public override async Task PollAsync(CancellationToken ct = default)
     {
         EnsureInitialized();
 
-        var polledData = await PollAllCellsAsync(ct);
-        var alarms = await PollAlarmsAsync(ct);
-
-        polledData.Add(alarms);
-
-        var diff = _dataWarehouse.ProcessIncoming(polledData);
-        await _iotDevice.SendMessageAsync(diff, ct);
+        // polledData.Add(alarms);
+        //
+        // var diff = _dataWarehouse.ProcessIncoming(polledData);
+        // await _iotDevice.SendMessageAsync(diff, ct);
     }
 
     // ------------------------------------------------------------
     // Initialization helpers
     // ------------------------------------------------------------
-
-    private async Task<string> FetchPrimaryControllerAsync(CancellationToken ct)
+    public async Task TestPrintControllerListAsync(CancellationToken ct = default)
     {
+        _logger.LogInformation("Testing E2 get controller list operation");
         var op = new E2GetControllerListOperation(_endpoint, _loggerFactory);
-        await op.ExecuteAsync(_executor, ct);
+        var result = await op.ExecuteAsync(_pipelineExecutor, ct);
 
-        var controller = op.PrimaryController?.Name
-            ?? throw new InvalidOperationException("No primary controller found.");
+        if (!result.Success)
+        {
+            _logger.LogError($"Operation failed: {result.ErrorType}, {result.ErrorMessage}");
+            return;
+        }
 
-        return controller;
+        _logger.LogInformation("Raw JSON result:\n{Json}", result.Data?.ToJsonString());
     }
-
-    private async Task<List<E2CellListInfo>> FetchCellListAsync(CancellationToken ct)
-    {
-        var op = new E2GetCellListOperation(_endpoint, _primaryController!, _loggerFactory);
-        await op.ExecuteAsync(_executor, ct);
-
-        return op.Cells?.ToList()
-            ?? throw new InvalidOperationException("Cell list missing.");
-    }
-
     // ------------------------------------------------------------
     // Polling helpers
     // ------------------------------------------------------------
-
-    private async Task<JsonArray> PollAllCellsAsync(CancellationToken ct)
-    {
-        var results = new JsonArray();
-
-        foreach (var cell in _cells!)
-        {
-            var normalized = await PollSingleCellAsync(cell, ct);
-            if (normalized != null)
-                results.Add(normalized);
-        }
-
-        return results;
-    }
-
-    private async Task<JsonObject?> PollSingleCellAsync(E2CellListInfo cell, CancellationToken ct)
-    {
-        var points = _indexProvider.GetPointsForCellType(cell.CellType);
-
-        if (points.Count == 0)
-        {
-            _logger.LogWarning("No index mapping found for cell type {CellType}", cell.CellType);
-            return null;
-        }
-
-        var op = new E2GetPointsOperation(
-            _endpoint,
-            _primaryController!,
-            cell.CellName,
-            points,
-            _loggerFactory
-        );
-
-        await op.ExecuteAsync(_executor, ct);
-
-        return _normalizer.Normalize(
-            deviceIp: DeviceIp,
-            deviceType: DeviceType,
-            dataAddress: $"{_primaryController}:{cell.CellName}",
-            rawData: (JsonObject?)op.ToJson()
-        );
-    }
-
-    private async Task<JsonObject> PollAlarmsAsync(CancellationToken ct)
-    {
-        var op = new E2GetAlarmListOperation(_endpoint, _primaryController!, _loggerFactory);
-        await op.ExecuteAsync(_executor, ct);
-
-        return _normalizer.Normalize(
-            deviceIp: DeviceIp,
-            deviceType: DeviceType,
-            dataAddress: $"{_primaryController}:ALARMS",
-            rawData: (JsonObject?)op.ToJson()
-        );
-    }
 
     // ------------------------------------------------------------
     // Utility

@@ -2,13 +2,13 @@ public sealed class E2DeviceRunner : BaseDeviceRunner
 {
     public E2DeviceRunner(
         Uri endpoint,
-        IHttpPipelineExecutor executor,
+        IDeviceHttpExecutor pipelineExecutor,
         IE2IndexMappingProvider indexProvider,
         INormalizerService normalizerService,
         ILoggerFactory loggerFactory,
         IIotDevice iotDevice
     ) : base(endpoint,
-        executor,
+        pipelineExecutor,
         indexProvider,
         normalizerService,
         loggerFactory,
@@ -20,7 +20,7 @@ public sealed class E2DeviceRunner : BaseDeviceRunner
     {
         return new E2DeviceClient(
             _endpoint,
-            _executor,
+            _pipelineExecutor,
             _indexProvider,
             _normalizer,
             _loggerFactory,

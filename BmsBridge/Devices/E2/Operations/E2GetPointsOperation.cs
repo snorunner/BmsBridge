@@ -7,10 +7,9 @@ public sealed class E2GetPointsOperation : E2BaseDeviceOperation
 
     public string ControllerName { get; }
     public string CellName { get; }
+    protected override JsonArray? Parameters => CreateParameters();
 
     public IReadOnlyList<(int Index, string PointName)> PointsToQuery { get; }
-
-    public Dictionary<string, JsonObject>? Points { get; private set; }
 
     public E2GetPointsOperation(
         Uri endpoint,
@@ -25,7 +24,7 @@ public sealed class E2GetPointsOperation : E2BaseDeviceOperation
         PointsToQuery = pointsToQuery;
     }
 
-    public override async Task ExecuteAsync(IHttpPipelineExecutor executor, CancellationToken ct)
+    private JsonArray CreateParameters()
     {
         var paramArray = new JsonArray();
 
@@ -35,39 +34,11 @@ public sealed class E2GetPointsOperation : E2BaseDeviceOperation
             paramArray.Add(key);
         }
 
-        var parameters = new JsonArray { paramArray };
-
-        var request = BuildRequest(Name, parameters);
-        _logger.LogInformation($"Sending {Name} to {Endpoint}");
-        var response = await executor.SendAsync(request, ct, Name);
-        await ParseAsync(response, ct);
+        return new JsonArray { paramArray };
     }
 
-    protected override async Task ParseAsync(HttpResponseMessage response, CancellationToken ct)
+    protected override JsonArray? GetRelevantData(JsonNode? json)
     {
-        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
-        var dataArray = json?["result"]?["data"] as JsonArray;
-
-        var dict = new Dictionary<string, JsonObject>();
-
-        if (dataArray is not null)
-        {
-            for (int i = 0; i < dataArray.Count && i < PointsToQuery.Count; i++)
-            {
-                if (dataArray[i] is JsonObject obj)
-                {
-                    var (_, pointName) = PointsToQuery[i];
-                    dict[pointName] = obj;
-                }
-            }
-        }
-
-        Points = dict;
-
-        ExportObject = new JsonObject
-        {
-            ["CellName"] = CellName,
-            ["Points"] = JsonNode.Parse(JsonSerializer.Serialize(dict))
-        };
+        return json?["data"]?["result"] as JsonArray;
     }
 }

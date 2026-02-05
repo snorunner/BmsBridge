@@ -3,6 +3,8 @@ using System.Text;
 
 public abstract class E2BaseDeviceOperation : BaseDeviceOperation
 {
+    protected virtual JsonArray? Parameters => null;
+
     protected E2BaseDeviceOperation(Uri endpoint, ILoggerFactory loggerFactory)
         : base(endpoint, loggerFactory)
     {
@@ -15,12 +17,12 @@ public abstract class E2BaseDeviceOperation : BaseDeviceOperation
             ["Content-Type"] = "application/json"
         };
 
-    protected HttpRequestMessage BuildRequest(string method, JsonArray? parameters = null)
+    protected HttpRequestMessage BuildRequest(JsonArray? parameters = null)
     {
         var payload = new JsonObject
         {
             ["id"] = "0",
-            ["method"] = method,
+            ["method"] = Name,
             ["params"] = parameters ?? new JsonArray()
         };
 
@@ -35,7 +37,5 @@ public abstract class E2BaseDeviceOperation : BaseDeviceOperation
     }
 
     protected override HttpRequestMessage BuildRequest()
-    {
-        return BuildRequest(Name);
-    }
+        => BuildRequest(parameters: null);
 }
