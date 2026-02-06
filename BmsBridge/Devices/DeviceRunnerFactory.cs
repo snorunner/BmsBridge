@@ -31,7 +31,9 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
         IDeviceHttpExecutor pipelineExecutor = new DeviceHttpExecutor(
             executor,
             _deviceHealthRegistry,
-            _loggerFactory.CreateLogger<DeviceHttpExecutor>()
+            _loggerFactory.CreateLogger<DeviceHttpExecutor>(),
+            deviceSettings.IP,
+            deviceSettings.DeviceType
         );
 
         switch (deviceSettings.DeviceType)

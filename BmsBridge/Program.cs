@@ -45,6 +45,8 @@ builder.Services.AddSingleton<INormalizerService, NormalizerService>();
 builder.Services.AddSingleton<IDeviceRunnerFactory, DeviceRunnerFactory>(); // prod // TODO: Make dynamic
 // builder.Services.AddSingleton<IDeviceRunnerFactory, ReplayDeviceRunnerFactory>(); // test
 builder.Services.AddSingleton<IDeviceHealthRegistry, InMemoryDeviceHealthRegistry>();
+builder.Services.AddSingleton<ICircuitBreakerService, CircuitBreakerService>();
+builder.Services.AddSingleton<IHealthTelemetryService, HealthTelemetryService>();
 
 // Workers
 builder.Services.AddHostedService<DeviceWorker>();

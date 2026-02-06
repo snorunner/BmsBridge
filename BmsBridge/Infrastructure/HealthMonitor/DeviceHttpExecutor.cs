@@ -7,11 +7,15 @@ public sealed class DeviceHttpExecutor : IDeviceHttpExecutor
     public DeviceHttpExecutor(
         IHttpPipelineExecutor inner,
         IDeviceHealthRegistry health,
-        ILogger<DeviceHttpExecutor> logger)
+        ILogger<DeviceHttpExecutor> logger,
+        string deviceIp,
+        BmsType deviceType)
     {
         _inner = inner;
         _health = health;
         _logger = logger;
+
+        _health.RegisterDevice(deviceIp, deviceType);
     }
 
     public async Task<DeviceOperationResult<HttpResponseMessage>> SendAsync(

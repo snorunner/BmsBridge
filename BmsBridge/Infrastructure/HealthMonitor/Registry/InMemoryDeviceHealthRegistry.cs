@@ -16,9 +16,17 @@ public sealed class InMemoryDeviceHealthRegistry : IDeviceHealthRegistry
     }
 
     private readonly ConcurrentDictionary<string, MutableHealth> _devices = new();
+    private readonly ILogger<InMemoryDeviceHealthRegistry> _logger;
+
+    public InMemoryDeviceHealthRegistry(ILogger<InMemoryDeviceHealthRegistry> logger)
+    {
+        _logger = logger;
+    }
 
     public void RegisterDevice(string deviceIp, BmsType deviceType)
     {
+        _logger.LogInformation($"Registering device {deviceIp} to health registry.");
+
         _devices.AddOrUpdate(
             deviceIp,
             ip => new MutableHealth
@@ -31,6 +39,17 @@ public sealed class InMemoryDeviceHealthRegistry : IDeviceHealthRegistry
                 existing.DeviceType = deviceType;
                 return existing;
             });
+    }
+
+    public void SetCircuitState(string deviceIp, DeviceCircuitState state)
+    {
+        if (_devices.TryGetValue(deviceIp, out var health))
+        {
+            lock (health)
+            {
+                health.CircuitState = state;
+            }
+        }
     }
 
     public void RecordSuccess(string deviceIp, TimeSpan latency)

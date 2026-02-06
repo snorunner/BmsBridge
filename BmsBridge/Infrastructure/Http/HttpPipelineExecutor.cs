@@ -76,7 +76,9 @@ public sealed class HttpPipelineExecutor : IHttpPipelineExecutor, IDisposable
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Name is not null)
         {
             var text = await response.Content.ReadAsStringAsync();
-            await File.WriteAllTextAsync($"/home/henry/Projects/BmsBridge/BmsBridge/ReplayData/{Name}.txt", text);
+
+            if (!string.IsNullOrEmpty(text))
+                await File.WriteAllTextAsync($"/home/henry/Projects/BmsBridge/BmsBridge/ReplayData/{Name}.txt", text);
         }
 
         return response;

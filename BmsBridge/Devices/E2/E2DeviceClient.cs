@@ -47,7 +47,7 @@ public sealed class E2DeviceClient : BaseDeviceClient
     // ------------------------------------------------------------
     // Initialization helpers
     // ------------------------------------------------------------
-    public async Task TestPrintControllerListAsync(CancellationToken ct = default)
+    private async Task TestPrintControllerListAsync(CancellationToken ct = default)
     {
         _logger.LogInformation("Testing E2 get controller list operation");
         var op = new E2GetControllerListOperation(_endpoint, _loggerFactory);

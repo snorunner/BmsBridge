@@ -6,6 +6,8 @@ public interface IDeviceHealthRegistry
 
     void RecordFailure(string deviceIp, DeviceErrorType errorType, TimeSpan? latency = null);
 
+    void SetCircuitState(string deviceIp, DeviceCircuitState state);
+
     DeviceHealthSnapshot? GetSnapshot(string deviceIp);
 
     IReadOnlyCollection<DeviceHealthSnapshot> GetAllSnapshots();
