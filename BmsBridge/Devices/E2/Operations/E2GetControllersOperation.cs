@@ -14,4 +14,3 @@ public sealed class E2GetControllerListOperation : E2BaseDeviceOperation
         return json?["result"] as JsonArray;
     }
 }
-

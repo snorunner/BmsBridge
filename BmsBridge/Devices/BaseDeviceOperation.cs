@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using System.Text.Json;
 
 public abstract class BaseDeviceOperation : IDeviceOperation
 {
@@ -60,11 +59,14 @@ public abstract class BaseDeviceOperation : IDeviceOperation
 
     protected abstract JsonArray? GetRelevantData(JsonNode? json);
 
+    protected abstract JsonNode? Translate(HttpResponseMessage response);
+
     protected virtual DeviceOperationResult<JsonNode?> ParseResponse(HttpResponseMessage response)
     {
         try
         {
-            var json = JsonNode.Parse(response.Content.ReadAsStringAsync().Result);
+            // var json = JsonNode.Parse(response.Content.ReadAsStringAsync().Result);
+            var json = Translate(response);
             var res = GetRelevantData(json);
 
             if (res is null)

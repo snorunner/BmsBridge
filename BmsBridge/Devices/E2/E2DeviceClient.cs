@@ -8,7 +8,7 @@ public sealed class E2DeviceClient : BaseDeviceClient
 
     public override BmsType DeviceType => BmsType.EmersonE2;
 
-    // data objects
+    // Data objects
     private JsonObject? _primaryController;
     private string _controllerName => _primaryController?["data"]?["name"]?.GetValue<string>() ?? "Unknown";
     private List<JsonObject> _cells = new();
@@ -56,8 +56,6 @@ public sealed class E2DeviceClient : BaseDeviceClient
         polledData.Add(_primaryController);
         foreach (var cell in _cells)
             polledData.Add(cell);
-
-        _logger.LogInformation($"Polling complete for device {DeviceIp}!.");
 
         var diff = _dataWarehouse.ProcessIncoming(polledData);
         await _iotDevice.SendMessageAsync(diff, ct);

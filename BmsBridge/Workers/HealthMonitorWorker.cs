@@ -30,7 +30,7 @@ public sealed class HealthMonitorWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(10_000);
+            await Task.Delay(10_000, stoppingToken);
 
             var snapshots = _deviceHealthRegistry.GetAllSnapshots();
 

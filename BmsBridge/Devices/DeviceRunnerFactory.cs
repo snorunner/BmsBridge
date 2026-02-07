@@ -47,6 +47,15 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
                     _loggerFactory,
                     _iotDevice
                 );
+            case BmsType.Danfoss:
+                return new DanfossDeviceRunner(
+                    new Uri($"http://{deviceSettings.IP}/http/xml.cgi"),
+                    pipelineExecutor,
+                    _indexProvider,
+                    _normalizer,
+                    _loggerFactory,
+                    _iotDevice
+                );
             default:
                 throw new NotImplementedException($"Device type {deviceSettings.DeviceType} is not implemented.");
         }
