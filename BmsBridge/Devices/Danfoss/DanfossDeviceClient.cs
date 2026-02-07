@@ -14,11 +14,13 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     private List<JsonObject> _inputs = new();
     private List<JsonObject> _relays = new();
     private List<JsonObject> _var_outs = new();
+    private List<JsonObject> _lighting = new();
 
     // Polling data objects
     private JsonArray _polledData = new();
     private List<JsonObject> _hvacs = new();
     private List<JsonObject> _devices = new();
+    private List<JsonObject> _lightingZones = new();
 
     public DanfossDeviceClient(
         Uri endpoint,
@@ -44,13 +46,16 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         // Only poll once per restart:
         try
         {
-            _unitsData = await ReadUnitsAsync(ct);
-            _parmVersions = await ReadParmVersionsAsync(ct);
-            _storeSchedule = await ReadStoreScheduleAsync(ct);
-            _sensors = await ReadSensorsAsync(ct);
-            _inputs = await ReadInputsAsync(ct);
-            _relays = await ReadRelaysAsync(ct);
-            _var_outs = await ReadVarOutsAsync(ct);
+            // _unitsData = await ReadUnitsAsync(ct);
+            // _parmVersions = await ReadParmVersionsAsync(ct);
+            // _storeSchedule = await ReadStoreScheduleAsync(ct);
+            // _sensors = await ReadSensorsAsync(ct);
+            // _inputs = await ReadInputsAsync(ct);
+            // _relays = await ReadRelaysAsync(ct);
+            // _var_outs = await ReadVarOutsAsync(ct);
+            // _lighting = await ReadLightingAsync(ct);
+
+            _polledData = new();
         }
         catch
         {
@@ -58,26 +63,25 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
             _initialized = false;
         }
 
-        _polledData = new();
-
-        _hvacs.ForEach(_polledData.Add);
-        _devices.ForEach(_polledData.Add);
-        _sensors.ForEach(_polledData.Add);
-        _inputs.ForEach(_polledData.Add);
-        _relays.ForEach(_polledData.Add);
-        _var_outs.ForEach(_polledData.Add);
+        // _polledData.Add(_unitsData);
+        // _polledData.Add(_parmVersions);
+        // _polledData.Add(_storeSchedule);
+        // _sensors.ForEach(_polledData.Add);
+        // _inputs.ForEach(_polledData.Add);
+        // _relays.ForEach(_polledData.Add);
+        // _var_outs.ForEach(_polledData.Add);
+        // _lighting.ForEach(_polledData.Add);
     }
 
     public override async Task PollAsync(CancellationToken ct = default)
     {
         await EnsureInitialized();
 
-        _hvacs = await ReadHvacAsync(ct);
-        _devices = await ReadDevicesAsync(ct);
+        // _hvacs = await ReadHvacAsync(ct);
+        // _devices = await ReadDevicesAsync(ct);
 
-        _polledData.Add(_unitsData);
-        _polledData.Add(_parmVersions);
-        _polledData.Add(_storeSchedule);
+        // _hvacs.ForEach(_polledData.Add);
+        // _devices.ForEach(_polledData.Add);
 
         var diff = _dataWarehouse.ProcessIncoming(_polledData);
         await _iotDevice.SendMessageAsync(diff, ct);
@@ -168,6 +172,19 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         return DynamicAddressParse(result);
     }
 
+    private async Task<List<JsonObject>> ReadLightingZonesAsync(CancellationToken ct = default)
+    {
+
+    }
+
+    private async Task<List<JsonObject>> ReadLightingAsync(CancellationToken ct = default)
+    {
+        var op = new DanfossReadLightingOperation(_endpoint, _loggerFactory);
+        var result = await op.ExecuteAsync(_pipelineExecutor, ct);
+
+        return DynamicAddressParse(result);
+    }
+
     private async Task<List<JsonObject>> ReadDevicesAsync(CancellationToken ct = default)
     {
         var op = new DanfossReadDevicesOperation(_endpoint, _loggerFactory);
@@ -190,6 +207,7 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     {
         _hvacs = new();
         _devices = new();
+        _lightingZones = new();
     }
 
     private List<JsonObject> DynamicAddressParse(DeviceOperationResult<JsonNode?> result)
@@ -267,7 +285,7 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         return returnList;
     }
 
-    private async Task<JsonObject> ControllerLevelParse(DanfossBaseDeviceOperation op, CancellationToken ct)
+    private async Task<JsonObject> ControllerLevelParse(DanfossBaseDeviceOperation op, CancellationToken ct, string dataAddress = "ControllerInfo")
     {
         var result = await op.ExecuteAsync(_pipelineExecutor, ct);
 
@@ -279,7 +297,7 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         return _normalizer.Normalize(
             DeviceIp,
             DeviceType.ToString(),
-            "ControllerInfo",
+            dataAddress,
             entry
         );
     }
