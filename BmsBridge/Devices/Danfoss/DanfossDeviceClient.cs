@@ -79,9 +79,11 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
 
         // _hvacs = await ReadHvacAsync(ct);
         // _devices = await ReadDevicesAsync(ct);
+        // _lightingZones = await ReadLightingZonesAsync(ct);
 
         // _hvacs.ForEach(_polledData.Add);
         // _devices.ForEach(_polledData.Add);
+        // _lightingZones.ForEach(_polledData.Add);
 
         var diff = _dataWarehouse.ProcessIncoming(_polledData);
         await _iotDevice.SendMessageAsync(diff, ct);
@@ -174,7 +176,21 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
 
     private async Task<List<JsonObject>> ReadLightingZonesAsync(CancellationToken ct = default)
     {
+        var outList = new List<JsonObject>();
 
+        foreach (var lightingEntry in _lighting)
+        {
+            var zoneIndex = lightingEntry["data"]?["index"]?.GetValue<string>();
+
+            if (zoneIndex is null)
+                continue;
+
+            var op = new DanfossReadLightingZoneOperation(_endpoint, zoneIndex, _loggerFactory);
+            var result = await ControllerLevelParse(op, ct, $"lighting_zone:i{zoneIndex}");
+            outList.Add(result);
+        }
+
+        return outList;
     }
 
     private async Task<List<JsonObject>> ReadLightingAsync(CancellationToken ct = default)

@@ -5,6 +5,8 @@ using System.Xml;
 
 public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
 {
+    protected IEnumerable<XAttribute>? _extraAttributes = null;
+
     protected Dictionary<string, string> _requiredParams;
 
     protected DanfossBaseDeviceOperation(Uri endpoint, ILoggerFactory loggerFactory)
@@ -23,7 +25,7 @@ public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
             ["Connection"] = "close",
         };
 
-    protected HttpRequestMessage BuildRequest(IEnumerable<XAttribute>? extraAttributes = null)
+    protected override HttpRequestMessage BuildRequest()
     {
         var attributes = new List<XAttribute>();
         attributes.AddRange(
@@ -32,8 +34,8 @@ public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
 
         attributes.Add(new XAttribute("action", Name));
 
-        if (extraAttributes is not null)
-            attributes.AddRange(extraAttributes);
+        if (_extraAttributes is not null)
+            attributes.AddRange(_extraAttributes);
 
         var element = new XElement("cmd", attributes);
         string xmlString = element.ToString(SaveOptions.DisableFormatting);
@@ -47,9 +49,6 @@ public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
 
         return request;
     }
-
-    protected override HttpRequestMessage BuildRequest()
-        => BuildRequest(extraAttributes: null);
 
     protected override JsonNode? Translate(HttpResponseMessage response)
     {

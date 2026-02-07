@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Xml.Linq;
 
 public sealed class DanfossReadLightingZoneOperation : DanfossBaseDeviceOperation
 {
@@ -7,15 +8,20 @@ public sealed class DanfossReadLightingZoneOperation : DanfossBaseDeviceOperatio
     public DanfossReadLightingZoneOperation(Uri endpoint, string index, ILoggerFactory loggerFactory)
         : base(endpoint, loggerFactory)
     {
+        var attributes = new List<XAttribute>();
+
+        attributes.Add(new XAttribute("index", index));
+
+        _extraAttributes = attributes;
     }
 
     protected override JsonArray? GetRelevantData(JsonNode? json)
     {
-        var response = json?["resp"]?["device"] as JsonArray;
+        var response = json?["resp"];
 
         if (response is null)
             return new JsonArray();
 
-        return response;
+        return new JsonArray { response.DeepClone() };
     }
 }
