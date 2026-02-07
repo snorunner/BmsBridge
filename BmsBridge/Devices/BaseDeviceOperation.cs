@@ -36,7 +36,7 @@ public abstract class BaseDeviceOperation : IDeviceOperation
     {
         var request = BuildRequest();
 
-        // _logger.LogDebug($"Sending {Name} command to {Endpoint.Host}");
+        _logger.LogDebug($"Sending {Name} command to {Endpoint.Host}");
         var httpResult = await executor.SendAsync(Endpoint.Host, request, ct, Name);
 
         if (!httpResult.Success)
@@ -65,7 +65,6 @@ public abstract class BaseDeviceOperation : IDeviceOperation
     {
         try
         {
-            // var json = JsonNode.Parse(response.Content.ReadAsStringAsync().Result);
             var json = Translate(response);
             var res = GetRelevantData(json);
 
