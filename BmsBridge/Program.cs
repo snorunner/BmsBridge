@@ -2,6 +2,7 @@ using Serilog;
 using Serilog.Events;
 using Microsoft.Extensions.Options;
 using System.Runtime.InteropServices;
+using System.Reflection;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -37,7 +38,12 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 builder.Logging.AddSerilog();
 
-Log.Information("Starting version v0.1.0");
+var version = Assembly
+    .GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+    .InformationalVersion;
+
+Log.Information("Starting version {Version}", version);
 
 // Singletons
 // builder.Services.AddSingleton<IIotDevice, AzureIotDevice>(); // prod // TODO: Make dynamic
