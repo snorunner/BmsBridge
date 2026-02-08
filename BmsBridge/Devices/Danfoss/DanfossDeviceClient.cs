@@ -27,7 +27,8 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     private List<JsonObject> _hvacService = new();
     private List<JsonObject> _circuits = new();
     private List<JsonObject> _condensers = new();
-    private JsonObject _meters = new();
+    private JsonObject? _meters;
+    private List<JsonObject> _alarms = new();
 
     public DanfossDeviceClient(
         Uri endpoint,
@@ -48,18 +49,17 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         _logger.LogInformation($"Initializing Danfoss device client at {_endpoint}");
 
         _initialized = true;
-        // await TestPrintAsync(ct);
 
         // Only poll once per restart:
         try
         {
-            // _unitsData = await ReadUnitsAsync(ct);
-            // _parmVersions = await ReadParmVersionsAsync(ct);
-            // _storeSchedule = await ReadStoreScheduleAsync(ct);
-            // _sensors = await ReadSensorsAsync(ct);
-            // _inputs = await ReadInputsAsync(ct);
-            // _relays = await ReadRelaysAsync(ct);
-            // _var_outs = await ReadVarOutsAsync(ct);
+            _unitsData = await ReadUnitsAsync(ct);
+            _parmVersions = await ReadParmVersionsAsync(ct);
+            _storeSchedule = await ReadStoreScheduleAsync(ct);
+            _sensors = await ReadSensorsAsync(ct);
+            _inputs = await ReadInputsAsync(ct);
+            _relays = await ReadRelaysAsync(ct);
+            _var_outs = await ReadVarOutsAsync(ct);
 
             _polledData = new();
         }
@@ -69,42 +69,44 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
             _initialized = false;
         }
 
-        // _polledData.Add(_unitsData);
-        // _polledData.Add(_parmVersions);
-        // _polledData.Add(_storeSchedule);
-        // _sensors.ForEach(_polledData.Add);
-        // _inputs.ForEach(_polledData.Add);
-        // _relays.ForEach(_polledData.Add);
-        // _var_outs.ForEach(_polledData.Add);
+        _polledData.Add(_unitsData);
+        _polledData.Add(_parmVersions);
+        _polledData.Add(_storeSchedule);
+        _sensors.ForEach(_polledData.Add);
+        _inputs.ForEach(_polledData.Add);
+        _relays.ForEach(_polledData.Add);
+        _var_outs.ForEach(_polledData.Add);
     }
 
     public override async Task PollAsync(CancellationToken ct = default)
     {
         await EnsureInitialized();
 
-        // _lighting = await ReadLightingAsync(ct);
-        // _hvac = await ReadHvacAsync(ct);
-        // _hvacs = await ReadHvacsAsync(ct);
-        // _hvacUnits = await ReadHvacUnitsAsync(ct);
-        // _hvacService = await ReadHvacServiceAsync(ct);
-        // _devices = await ReadDevicesAsync(ct);
-        // _suctionGroups = await ReadSuctionGroupsAsync(ct);
-        // _condensers = await ReadCondensersAsync(ct);
-        // _circuits = await ReadCircuitsAsync(ct);
-        // _lightingZones = await ReadLightingZonesAsync(ct);
+        _lighting = await ReadLightingAsync(ct);
+        _hvac = await ReadHvacAsync(ct);
+        _hvacs = await ReadHvacsAsync(ct);
+        _hvacUnits = await ReadHvacUnitsAsync(ct);
+        _hvacService = await ReadHvacServiceAsync(ct);
+        _devices = await ReadDevicesAsync(ct);
+        _suctionGroups = await ReadSuctionGroupsAsync(ct);
+        _condensers = await ReadCondensersAsync(ct);
+        _circuits = await ReadCircuitsAsync(ct);
+        _lightingZones = await ReadLightingZonesAsync(ct);
         _meters = await ReadMetersAsync(ct);
+        _alarms = await ReadAlarmsAsync(ct);
 
-        // _hvac.ForEach(_polledData.Add);
-        // _hvacs.ForEach(_polledData.Add);
-        // _hvacUnits.ForEach(_polledData.Add);
-        // _hvacService.ForEach(_polledData.Add);
-        // _devices.ForEach(_polledData.Add);
-        // _suctionGroups.ForEach(_polledData.Add);
-        // _condensers.ForEach(_polledData.Add);
-        // _circuits.ForEach(_polledData.Add);
-        // _lighting.ForEach(_polledData.Add);
-        // _lightingZones.ForEach(_polledData.Add);
+        _hvac.ForEach(_polledData.Add);
+        _hvacs.ForEach(_polledData.Add);
+        _hvacUnits.ForEach(_polledData.Add);
+        _hvacService.ForEach(_polledData.Add);
+        _devices.ForEach(_polledData.Add);
+        _suctionGroups.ForEach(_polledData.Add);
+        _condensers.ForEach(_polledData.Add);
+        _circuits.ForEach(_polledData.Add);
+        _lighting.ForEach(_polledData.Add);
+        _lightingZones.ForEach(_polledData.Add);
         _polledData.Add(_meters);
+        _alarms.ForEach(_polledData.Add);
 
         var diff = _dataWarehouse.ProcessIncoming(_polledData);
         await _iotDevice.SendMessageAsync(diff, ct);
@@ -199,6 +201,46 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     {
         var op = new DanfossReadMetersOperation(_endpoint, _loggerFactory);
         return await ControllerLevelParse(op, ct, "meters");
+    }
+
+    private async Task<List<JsonObject>> ReadAlarmsAsync(CancellationToken ct = default)
+    {
+        var returnList = new List<JsonObject>();
+
+        var summaryOp = new DanfossAlarmSummaryOperation(_endpoint, _loggerFactory);
+        var summaryResult = await summaryOp.ExecuteAsync(_pipelineExecutor, ct);
+
+        if (!summaryResult.Success)
+            return returnList;
+
+        var summaryObj = summaryResult.Data![0]?.AsObject();
+
+        if (summaryObj is null)
+            return returnList;
+
+        // Normalize "ref" into a JsonArray
+        var refNode = summaryObj["active"]?["ref"];
+        var activeAlarmRefs = NormalizeToArray(refNode);
+
+        foreach (var reference in activeAlarmRefs)
+        {
+            var stringRef = reference?.GetValue<string>();
+
+            if (stringRef is null)
+                continue;
+
+            var detailOp = new DanfossAlarmDetailOperation(_endpoint, stringRef, _loggerFactory);
+
+            var result = await ControllerLevelParse(
+                detailOp,
+                ct,
+                $"alarm:ref{reference}"
+            );
+
+            returnList.Add(result);
+        }
+
+        return returnList;
     }
 
     private async Task<List<JsonObject>> ReadHvacsAsync(CancellationToken ct = default)
@@ -398,7 +440,8 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         _lightingZones = new();
         _circuits = new();
         _condensers = new();
-        _meters = new();
+        _meters = null;
+        _alarms = new();
     }
 
     private List<JsonObject> DynamicAddressParse(DeviceOperationResult<JsonNode?> result)
@@ -491,5 +534,17 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
             dataAddress,
             entry
         );
+    }
+
+    private static JsonArray NormalizeToArray(JsonNode? node)
+    {
+        return node switch
+        {
+            JsonArray arr => arr,
+            JsonValue val => new JsonArray(val),
+            JsonObject obj => new JsonArray(obj),
+            null => new JsonArray(),
+            _ => new JsonArray()
+        };
     }
 }
