@@ -125,6 +125,15 @@ public sealed class AzureIotDevice : IIotDevice, IAsyncDisposable
         return messages;
     }
 
+    private void WriteHeartbeat()
+    {
+        var dir = AppContext.BaseDirectory;
+        var path = Path.Combine(dir, "last-payload.txt");
+
+        var timestamp = DateTime.UtcNow.ToString("O"); // ISO 8601, sortable, unambiguous
+        File.WriteAllText(path, timestamp);
+    }
+
     public async Task SendMessageAsync(JsonNode payload, CancellationToken ct = default)
     {
         await ConnectAsync(ct);
@@ -138,6 +147,7 @@ public sealed class AzureIotDevice : IIotDevice, IAsyncDisposable
             {
                 await _deviceClient!.SendEventAsync(message, ct);
                 _logger.LogInformation("Message sent to Azure IotHub successfully");
+                WriteHeartbeat();
                 await Task.Delay(TimeSpan.FromMilliseconds(200), ct);
             }
             catch (IotHubException ex)
