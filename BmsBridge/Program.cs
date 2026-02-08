@@ -1,4 +1,5 @@
 using Serilog;
+using Serilog.Events;
 using Microsoft.Extensions.Options;
 using System.Runtime.InteropServices;
 
@@ -8,17 +9,35 @@ var builder = Host.CreateApplicationBuilder(args);
 var configPath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
 SettingsConfigurator.EnsureConfig(configPath);
 
-// Logging
-builder.Logging.ClearProviders();
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .CreateLogger();
-builder.Logging.AddSerilog();
-Log.Information("Starting version v0.1.0");
 
 builder.Services.Configure<AzureSettings>(builder.Configuration.GetSection("AzureSettings"));
 builder.Services.Configure<GeneralSettings>(builder.Configuration.GetSection("GeneralSettings"));
 builder.Services.Configure<NetworkSettings>(builder.Configuration.GetSection("NetworkSettings"));
+builder.Services.Configure<LoggingSettings>(builder.Configuration.GetSection("LoggingSettings"));
+
+var loggingSettings = builder.Configuration
+    .GetSection("LoggingSettings")
+    .Get<LoggingSettings>();
+
+// Logging
+builder.Logging.ClearProviders();
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Is(Enum.TryParse<LogEventLevel>(loggingSettings!.MinimumLevel, true, out var parsed) ? parsed : LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "logs/app.log",
+        rollingInterval: RollingInterval.Day,
+        fileSizeLimitBytes: loggingSettings!.FileSizeLimitBytes,
+        retainedFileCountLimit: loggingSettings!.RetainedFileCountLimit,
+        rollOnFileSizeLimit: false,
+        formatter: new Serilog.Formatting.Compact.CompactJsonFormatter()
+    )
+    .CreateLogger();
+builder.Logging.AddSerilog();
+
+Log.Information("Starting version v0.1.0");
 
 // Singletons
 // builder.Services.AddSingleton<IIotDevice, AzureIotDevice>(); // prod // TODO: Make dynamic
