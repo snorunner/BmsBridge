@@ -1,17 +1,19 @@
 using System.Text.Json.Nodes;
 
-public sealed class E3GetDefaultLogGroupOperation : E3BaseDeviceOperation
+public sealed class E3LoginOperation : E3BaseDeviceOperation
 {
-    public override string Name => "GetDefaultLogGroup";
-
     protected override JsonObject? Parameters => _parameters;
     private readonly JsonObject _parameters;
 
-    public E3GetDefaultLogGroupOperation(Uri endpoint, string sessionId, ILoggerFactory loggerFactory)
+    public override string Name => "Login";
+
+    public E3LoginOperation(Uri endpoint, string sessionId, ILoggerFactory loggerFactory)
         : base(endpoint, loggerFactory)
     {
         _parameters = new JsonObject
         {
+            ["key"] = "system.default",
+            ["value"] = "",
             ["sid"] = sessionId
         };
     }

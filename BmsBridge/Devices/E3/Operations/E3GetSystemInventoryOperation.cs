@@ -4,9 +4,16 @@ public sealed class E3GetSystemInventoryOperation : E3BaseDeviceOperation
 {
     public override string Name => "GetSystemInventory";
 
-    public E3GetSystemInventoryOperation(Uri endpoint, ILoggerFactory loggerFactory)
+    protected override JsonObject? Parameters => _parameters;
+    private readonly JsonObject _parameters;
+
+    public E3GetSystemInventoryOperation(Uri endpoint, string sessionId, ILoggerFactory loggerFactory)
         : base(endpoint, loggerFactory)
     {
+        _parameters = new JsonObject
+        {
+            ["sid"] = sessionId
+        };
     }
 
     protected override JsonArray? GetRelevantData(JsonNode? json)
