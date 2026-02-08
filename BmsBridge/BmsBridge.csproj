@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources/E2IndexMappings.json" />
+    <EmbeddedResource Include="README.md" />
   </ItemGroup>
 
 </Project>

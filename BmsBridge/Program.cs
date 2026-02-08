@@ -45,6 +45,20 @@ var version = Assembly
 
 Log.Information("Starting version {Version}", version);
 
+// Dump README on startup
+var exeDir = AppContext.BaseDirectory;
+var readmePath = Path.Combine(exeDir, "README.md");
+
+using var stream = Assembly.GetExecutingAssembly()
+    .GetManifestResourceStream("BmsBridge.README.md");
+
+if (stream != null)
+{
+    using var reader = new StreamReader(stream);
+    var content = reader.ReadToEnd();
+    File.WriteAllText(readmePath, content);
+}
+
 // Singletons
 if (builder.Environment.IsDevelopment())
 {
