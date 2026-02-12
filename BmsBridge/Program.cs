@@ -1,63 +1,23 @@
-using Serilog;
-using Serilog.Events;
 using Microsoft.Extensions.Options;
 using System.Runtime.InteropServices;
-using System.Reflection;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 // Configuration
 builder.Services.AddAppSettings(builder.Configuration, builder.Environment);
 
-var loggingSettings = builder.Configuration
-    .GetSection("LoggingSettings")
-    .Get<LoggingSettings>();
-
 // Logging
-builder.Logging.ClearProviders();
-
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Is(Enum.TryParse<LogEventLevel>(loggingSettings!.MinimumLevel, true, out var parsed) ? parsed : LogEventLevel.Information)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File(
-        path: "logs/app.log",
-        rollingInterval: RollingInterval.Day,
-        fileSizeLimitBytes: loggingSettings!.FileSizeLimitBytes,
-        retainedFileCountLimit: loggingSettings!.RetainedFileCountLimit,
-        rollOnFileSizeLimit: false,
-        formatter: new Serilog.Formatting.Compact.CompactJsonFormatter()
-    )
-    .CreateLogger();
-builder.Logging.AddSerilog();
-
-var version = Assembly
-    .GetExecutingAssembly()
-    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-    .InformationalVersion;
-
-Log.Information("Starting version {Version}", version);
+builder.AddAppLogging();
 
 // Dump README on startup
-var exeDir = AppContext.BaseDirectory;
-var readmePath = Path.Combine(exeDir, "README.md");
-
-using var stream = Assembly.GetExecutingAssembly()
-    .GetManifestResourceStream("BmsBridge.README.md");
-
-if (stream != null)
-{
-    using var reader = new StreamReader(stream);
-    var content = reader.ReadToEnd();
-    File.WriteAllText(readmePath, content);
-}
+builder.ExtractReadme();
 
 // Singletons
 if (builder.Environment.IsDevelopment())
 {
-    // builder.Services.AddSingleton<IIotDevice, VoidIotDevice>();
+    builder.Services.AddSingleton<IIotDevice, VoidIotDevice>();
     // or:
-    builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
+    // builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
     // or:
     // builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
 }
