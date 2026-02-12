@@ -7,14 +7,7 @@ using System.Reflection;
 var builder = Host.CreateApplicationBuilder(args);
 
 // Configuration
-var configPath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
-SettingsConfigurator.EnsureConfig(configPath);
-
-
-builder.Services.Configure<AzureSettings>(builder.Configuration.GetSection("AzureSettings"));
-builder.Services.Configure<GeneralSettings>(builder.Configuration.GetSection("GeneralSettings"));
-builder.Services.Configure<NetworkSettings>(builder.Configuration.GetSection("NetworkSettings"));
-builder.Services.Configure<LoggingSettings>(builder.Configuration.GetSection("LoggingSettings"));
+builder.Services.AddAppSettings(builder.Configuration, builder.Environment);
 
 var loggingSettings = builder.Configuration
     .GetSection("LoggingSettings")
