@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Options;
-using System.Runtime.InteropServices;
-
 var builder = Host.CreateApplicationBuilder(args);
 
 // Configuration
@@ -11,6 +8,9 @@ builder.AddAppLogging();
 
 // Dump README on startup
 builder.ExtractReadme();
+
+// Select certificate source
+builder.Services.AddCertificateSource(builder.Environment);
 
 // Singletons
 if (builder.Environment.IsDevelopment())
@@ -26,26 +26,6 @@ else
     builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
 }
 
-if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-{
-    builder.Services.AddSingleton<ICertificateSource>(sp =>
-    {
-        var options = sp.GetRequiredService<IOptions<AzureSettings>>();
-        return new StoreCertificateSource(options);
-    });
-}
-else
-{
-    var certPath = Path.Combine(
-        builder.Environment.ContentRootPath,
-        "DevelopmentKeys",
-        "CertificateTest.pfx"
-    );
-
-    builder.Services.AddSingleton<ICertificateSource>(
-        _ => new PfxCertificateSource(certPath)
-    );
-}
 
 builder.Services.AddSingleton<CertificateProvider>();
 builder.Services.AddSingleton<KeyvaultService>();
