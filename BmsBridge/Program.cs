@@ -33,14 +33,7 @@ builder.Services.AddSingleton<DpsService>();
 builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
 builder.Services.AddSingleton<INormalizerService, NormalizerService>();
 
-if (args.Contains("--replay", StringComparer.OrdinalIgnoreCase) && builder.Environment.IsDevelopment())
-{
-    builder.Services.AddSingleton<IDeviceRunnerFactory, ReplayDeviceRunnerFactory>();
-}
-else
-{
-    builder.Services.AddSingleton<IDeviceRunnerFactory, DeviceRunnerFactory>();
-}
+builder.Services.AddDeviceRunnerFactory(args, builder.Environment);
 
 builder.Services.AddSingleton<IDeviceHealthRegistry, InMemoryDeviceHealthRegistry>();
 builder.Services.AddSingleton<ICircuitBreakerService, CircuitBreakerService>();
@@ -56,6 +49,7 @@ builder.Services.AddHostedService<HealthMonitorWorker>();
 
 var app = builder.Build();
 
+// On fresh restart, clear all existing error files.
 using (var scope = app.Services.CreateScope())
 {
     var svc = scope.ServiceProvider.GetRequiredService<IErrorFileService>();
