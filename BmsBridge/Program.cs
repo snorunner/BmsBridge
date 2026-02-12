@@ -1,4 +1,6 @@
+// Create app builder
 var builder = Host.CreateApplicationBuilder(args);
+
 
 // Configuration
 builder.Services.AddAppSettings(builder.Configuration, builder.Environment);
@@ -9,31 +11,17 @@ builder.AddAppLogging();
 // Dump README on startup
 builder.ExtractReadme();
 
-// Select certificate source
+
+// DI registration
 builder.Services.AddCertificateSource(builder.Environment);
-
-// Singletons
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddSingleton<IIotDevice, VoidIotDevice>();
-    // or:
-    // builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
-    // or:
-    // builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
-}
-else
-{
-    builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
-}
-
+builder.Services.AddIotDevice(builder.Environment);
+builder.Services.AddDeviceRunnerFactory(args, builder.Environment);
 
 builder.Services.AddSingleton<CertificateProvider>();
 builder.Services.AddSingleton<KeyvaultService>();
 builder.Services.AddSingleton<DpsService>();
 builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
 builder.Services.AddSingleton<INormalizerService, NormalizerService>();
-
-builder.Services.AddDeviceRunnerFactory(args, builder.Environment);
 
 builder.Services.AddSingleton<IDeviceHealthRegistry, InMemoryDeviceHealthRegistry>();
 builder.Services.AddSingleton<ICircuitBreakerService, CircuitBreakerService>();
@@ -42,11 +30,13 @@ builder.Services.AddSingleton<IRunnerControlService, RunnerControlService>();
 builder.Services.AddSingleton<IDeviceRunnerRegistry, DeviceRunnerRegistry>();
 builder.Services.AddSingleton<IErrorFileService, ErrorFileService>();
 
+
 // Workers
 builder.Services.AddHostedService<DeviceWorker>();
 builder.Services.AddHostedService<HealthMonitorWorker>();
 
 
+// Build app and run
 var app = builder.Build();
 
 // On fresh restart, clear all existing error files.
