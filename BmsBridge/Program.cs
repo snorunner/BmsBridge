@@ -14,7 +14,7 @@ builder.ExtractReadme();
 
 // DI registration
 builder.Services.AddCertificateSource(builder.Environment);
-builder.Services.AddIotDevice(builder.Environment);
+builder.Services.AddIotDevice(builder.Configuration, builder.Environment);
 builder.Services.AddDeviceRunnerFactory(args, builder.Environment);
 
 builder.Services.AddSingleton<CertificateProvider>();

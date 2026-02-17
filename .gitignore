@@ -18,6 +18,7 @@ appsettings*
 # Logs
 *.log
 logs/
+*.jsonl
 
 # NuGet
 *.nupkg

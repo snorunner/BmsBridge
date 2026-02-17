@@ -1,23 +1,28 @@
 public static class IotDeviceExtensions
 {
-    public static void AddIotDevice(this IServiceCollection services, IHostEnvironment env)
+    public static void AddIotDevice(this IServiceCollection services, IConfiguration config, IHostEnvironment env)
     {
+        // Load settings directly
+        var generalSettings = config.GetSection("GeneralSettings").Get<GeneralSettings>();
+
+        // Development override
         if (env.IsDevelopment())
         {
-            // Default dev device
-            // If you ever want to switch to ConsoleIotDevice or AzureIotDevice,
-            // you can do it here without touching Program.cs.
-
-            // services.AddSingleton<IIotDevice, VoidIotDevice>();
-            // or:
             services.AddSingleton<IIotDevice, ConsoleIotDevice>();
-            // or:
+            // services.AddSingleton<IIotDevice, FileIotDevice>();
+            // services.AddSingleton<IIotDevice, VoidIotDevice>();
             // services.AddSingleton<IIotDevice, AzureIotDevice>();
+            return;
+        }
 
+        // Production logic
+        if (generalSettings?.use_cloud ?? true)
+        {
+            services.AddSingleton<IIotDevice, AzureIotDevice>();
         }
         else
         {
-            services.AddSingleton<IIotDevice, AzureIotDevice>();
+            services.AddSingleton<IIotDevice>(new FileIotDevice("localmessages.jsonl"));
         }
     }
 }
