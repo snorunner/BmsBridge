@@ -7,7 +7,7 @@
     <UserSecretsId>dotnet-BmsBridge-c322b1c1-d95c-40ab-bd54-df37d6fc65a8</UserSecretsId>
 
     <!-- Versioning -->
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <InformationalVersion>$(Version)+$(SourceRevisionId)</InformationalVersion>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
@@ -34,5 +34,9 @@
     <EmbeddedResource Include="Resources/E2IndexMappings.json" />
     <EmbeddedResource Include="README.md" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <ApplicationIcon>Resources/favicon.ico</ApplicationIcon>
+  </PropertyGroup>
 
 </Project>

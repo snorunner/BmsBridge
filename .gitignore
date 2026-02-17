@@ -50,3 +50,6 @@ ReplayData/
 
 # Development certificates
 DevelopmentKeys/
+
+# Images
+*.png
