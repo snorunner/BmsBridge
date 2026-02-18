@@ -64,16 +64,16 @@ if (builder.Environment.IsDevelopment())
 {
     // builder.Services.AddSingleton<IIotDevice, VoidIotDevice>();
     // or:
-    // builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
+    builder.Services.AddSingleton<IIotDevice, ConsoleIotDevice>();
     // or:
-    builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
+    //builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
 }
 else
 {
     builder.Services.AddSingleton<IIotDevice, AzureIotDevice>();
 }
 
-if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 {
     builder.Services.AddSingleton<ICertificateSource>(sp =>
     {
