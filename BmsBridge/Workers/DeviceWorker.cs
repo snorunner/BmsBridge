@@ -32,7 +32,7 @@ public sealed class DeviceWorker : BackgroundService
             var device = _deviceRunnerFactory.Create(deviceConfig);
             _deviceRunnerRegistry.RegisterDevice(device);
             deviceRunners.Add(device);
-            _logger.LogInformation("Device: IP={IP}, Type={Type}", deviceConfig.IP, deviceConfig.DeviceType);
+            _logger.LogInformation("Device: IP={IP}, Type={Type}", deviceConfig.IP, deviceConfig.device_type);
         }
 
         return deviceRunners;

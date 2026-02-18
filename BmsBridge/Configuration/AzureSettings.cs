@@ -7,5 +7,5 @@ public record AzureSettings
     public string secret_name { get; init; } = "my-vault-secret";
     public string vault_name { get; init; } = "my-vault";
     public string certificate_subject { get; init; } = "my-certificate-subject";
-    public int sas_ttl_days { get; init; } = 90;
+    public string sas_ttl_days { get; init; } = "90";
 }

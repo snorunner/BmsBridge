@@ -50,6 +50,16 @@ public abstract class DanfossBaseDeviceOperation : BaseDeviceOperation
         return request;
     }
 
+    protected JsonArray EnforceData(JsonNode? node)
+    {
+        return node switch
+        {
+            JsonArray arr => arr,
+            JsonObject obj => new JsonArray { obj.DeepClone() },
+            _ => new JsonArray()
+        };
+    }
+
     protected override JsonNode? Translate(HttpResponseMessage response)
     {
         var xmlDoc = new XmlDocument();

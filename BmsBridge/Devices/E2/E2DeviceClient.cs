@@ -12,6 +12,7 @@ public sealed class E2DeviceClient : BaseDeviceClient
     private JsonObject? _primaryController;
     private string _controllerName => _primaryController?["data"]?["name"]?.GetValue<string>() ?? "Unknown";
     private List<JsonObject> _cells = new();
+    private JsonArray _polledData = new JsonArray();
 
     public E2DeviceClient(
         Uri endpoint,
@@ -38,27 +39,27 @@ public sealed class E2DeviceClient : BaseDeviceClient
 
         await GetControllerListAsync(ct);
         await GetCellListAsync(ct);
+
+        // Add initialized data
+        _polledData.Add(_primaryController!.DeepClone());
+        foreach (var cell in _cells)
+            _polledData.Add(cell.DeepClone());
     }
 
     public override async Task PollAsync(CancellationToken ct = default)
     {
         await EnsureInitialized();
 
-        var polledData = new JsonArray();
-
         var points = await GetPointsAsync(ct);
         foreach (var point in points)
-            polledData.Add(point);
+            _polledData.Add(point);
 
-        polledData.Add(await GetAlarmsAsync(ct));
+        _polledData.Add(await GetAlarmsAsync(ct));
 
-        // Add initialized data
-        polledData.Add(_primaryController);
-        foreach (var cell in _cells)
-            polledData.Add(cell);
-
-        var diff = _dataWarehouse.ProcessIncoming(polledData);
+        var diff = _dataWarehouse.ProcessIncoming(_polledData);
         await _iotDevice.SendMessageAsync(diff, ct);
+
+        _polledData = new JsonArray();
     }
 
     // ------------------------------------------------------------
@@ -159,15 +160,24 @@ public sealed class E2DeviceClient : BaseDeviceClient
         foreach (var cell in _cells)
         {
             if (cell?["data"] is not JsonObject cellData)
+            {
+                _logger.LogDebug($"cell was not JsonObject.");
                 continue;
+            }
 
             var cellIndexStr = cellData["celltype"]?.GetValue<string>();
             if (string.IsNullOrEmpty(cellIndexStr) || !int.TryParse(cellIndexStr, out var cellIndexInt))
+            {
+                _logger.LogDebug($"there was no cell index found.");
                 continue;
+            }
 
             var cellName = cellData["cellname"]?.GetValue<string>();
             if (string.IsNullOrEmpty(cellName))
+            {
+                _logger.LogDebug($"The cellname wasn't found");
                 continue;
+            }
 
             var indices = _indexProvider.GetPointsForCellType(cellIndexInt);
 

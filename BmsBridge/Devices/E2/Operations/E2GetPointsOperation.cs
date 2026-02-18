@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 public sealed class E2GetPointsOperation : E2BaseDeviceOperation
@@ -34,11 +33,27 @@ public sealed class E2GetPointsOperation : E2BaseDeviceOperation
             paramArray.Add(key);
         }
 
+        _logger.LogDebug($"Number of properties in request: {paramArray.Count}");
+
         return new JsonArray { paramArray };
     }
 
     protected override JsonArray? GetRelevantData(JsonNode? json)
     {
         return json?["result"]?["data"] as JsonArray;
+    }
+
+    public override async Task<DeviceOperationResult<JsonNode?>> ExecuteAsync(
+        IDeviceHttpExecutor executor,
+        CancellationToken ct)
+    {
+        // If no parameters, skip the request entirely
+        if (PointsToQuery.Count == 0)
+        {
+            _logger.LogDebug("Skipping E2.GetMultiExpandedStatus because there are no points to query.");
+            return DeviceOperationResult<JsonNode?>.FromSuccess(new JsonArray());
+        }
+
+        return await base.ExecuteAsync(executor, ct);
     }
 }

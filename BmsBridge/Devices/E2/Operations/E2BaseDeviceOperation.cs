@@ -37,7 +37,7 @@ public abstract class E2BaseDeviceOperation : BaseDeviceOperation
     }
 
     protected override HttpRequestMessage BuildRequest()
-        => BuildRequest(parameters: null);
+        => BuildRequest(parameters: Parameters);
 
     protected override JsonNode? Translate(HttpResponseMessage response)
         => JsonNode.Parse(response.Content.ReadAsStringAsync().Result);

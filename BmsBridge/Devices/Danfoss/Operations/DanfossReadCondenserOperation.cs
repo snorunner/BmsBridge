@@ -19,13 +19,10 @@ public sealed class DanfossReadCondenserOperation : DanfossBaseDeviceOperation
         _extraAttributes = attributes;
     }
 
-    protected override JsonArray? GetRelevantData(JsonNode? json)
+    protected override JsonArray GetRelevantData(JsonNode? json)
     {
-        var response = json?["resp"];
+        var node = json?["resp"];
 
-        if (response is null)
-            return new JsonArray();
-
-        return new JsonArray { response.DeepClone() };
+        return EnforceData(node);
     }
 }

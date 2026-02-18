@@ -1,57 +1,18 @@
-using Serilog;
-using Serilog.Events;
-using Microsoft.Extensions.Options;
-using System.Runtime.InteropServices;
-using System.Reflection;
-
+// Create app builder
 var builder = Host.CreateApplicationBuilder(args);
 
+
 // Configuration
-var configPath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
-SettingsConfigurator.EnsureConfig(configPath);
-
-
-builder.Services.Configure<AzureSettings>(builder.Configuration.GetSection("AzureSettings"));
-builder.Services.Configure<GeneralSettings>(builder.Configuration.GetSection("GeneralSettings"));
-builder.Services.Configure<NetworkSettings>(builder.Configuration.GetSection("NetworkSettings"));
-builder.Services.Configure<LoggingSettings>(builder.Configuration.GetSection("LoggingSettings"));
-
-var loggingSettings = builder.Configuration
-    .GetSection("LoggingSettings")
-    .Get<LoggingSettings>();
+builder.Services.AddAppSettings(builder.Configuration, builder.Environment);
 
 // Logging
-builder.Logging.ClearProviders();
-
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Is(Enum.TryParse<LogEventLevel>(loggingSettings!.MinimumLevel, true, out var parsed) ? parsed : LogEventLevel.Information)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File(
-        path: "logs/app.log",
-        rollingInterval: RollingInterval.Day,
-        fileSizeLimitBytes: loggingSettings!.FileSizeLimitBytes,
-        retainedFileCountLimit: loggingSettings!.RetainedFileCountLimit,
-        rollOnFileSizeLimit: false,
-        formatter: new Serilog.Formatting.Compact.CompactJsonFormatter()
-    )
-    .CreateLogger();
-builder.Logging.AddSerilog();
-
-var version = Assembly
-    .GetExecutingAssembly()
-    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-    .InformationalVersion;
-
-Log.Information("Starting version {Version}", version);
+builder.AddAppLogging();
 
 // Dump README on startup
-var exeDir = AppContext.BaseDirectory;
-var readmePath = Path.Combine(exeDir, "README.md");
+builder.ExtractReadme();
 
-using var stream = Assembly.GetExecutingAssembly()
-    .GetManifestResourceStream("BmsBridge.README.md");
 
+<<<<<<< HEAD
 if (stream != null)
 {
     using var reader = new StreamReader(stream);
@@ -93,6 +54,12 @@ else
         _ => new PfxCertificateSource(certPath)
     );
 }
+=======
+// DI registration
+builder.Services.AddCertificateSource(builder.Environment);
+builder.Services.AddIotDevice(builder.Configuration, builder.Environment);
+builder.Services.AddDeviceRunnerFactory(args, builder.Environment);
+>>>>>>> ea542b6a9c25c27668c32ef7af0bbd98a8774376
 
 builder.Services.AddSingleton<CertificateProvider>();
 builder.Services.AddSingleton<KeyvaultService>();
@@ -100,25 +67,35 @@ builder.Services.AddSingleton<DpsService>();
 builder.Services.AddSingleton<IE2IndexMappingProvider, EmbeddedE2IndexMappingProvider>();
 builder.Services.AddSingleton<INormalizerService, NormalizerService>();
 
-if (args.Contains("--replay", StringComparer.OrdinalIgnoreCase) && builder.Environment.IsDevelopment())
-{
-    builder.Services.AddSingleton<IDeviceRunnerFactory, ReplayDeviceRunnerFactory>();
-}
-else
-{
-    builder.Services.AddSingleton<IDeviceRunnerFactory, DeviceRunnerFactory>();
-}
-
 builder.Services.AddSingleton<IDeviceHealthRegistry, InMemoryDeviceHealthRegistry>();
 builder.Services.AddSingleton<ICircuitBreakerService, CircuitBreakerService>();
 builder.Services.AddSingleton<IHealthTelemetryService, HealthTelemetryService>();
 builder.Services.AddSingleton<IRunnerControlService, RunnerControlService>();
 builder.Services.AddSingleton<IDeviceRunnerRegistry, DeviceRunnerRegistry>();
+builder.Services.AddSingleton<IErrorFileService, ErrorFileService>();
+
 
 // Workers
 builder.Services.AddHostedService<DeviceWorker>();
 builder.Services.AddHostedService<HealthMonitorWorker>();
 
 
+// Build app and run
 var app = builder.Build();
-app.Run();
+
+// On fresh restart, clear all existing error files.
+using (var scope = app.Services.CreateScope())
+{
+    var svc = scope.ServiceProvider.GetRequiredService<IErrorFileService>();
+    await svc.CleanupAllAsync();
+}
+
+
+try
+{
+    app.Run();
+}
+finally
+{
+    Environment.Exit(0); // for unconfigured nssm
+}

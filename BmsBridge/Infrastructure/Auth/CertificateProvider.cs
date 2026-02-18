@@ -3,10 +3,12 @@ using System.Security.Cryptography.X509Certificates;
 public sealed class CertificateProvider : ICertificateProvider
 {
     private readonly IReadOnlyList<ICertificateSource> _sources;
+    private readonly IErrorFileService _errorFileService;
 
-    public CertificateProvider(IEnumerable<ICertificateSource> sources)
+    public CertificateProvider(IEnumerable<ICertificateSource> sources, IErrorFileService errorFileService)
     {
         _sources = sources.ToList();
+        _errorFileService = errorFileService;
     }
 
     public X509Certificate2 GetCertificate()
@@ -25,6 +27,7 @@ public sealed class CertificateProvider : ICertificateProvider
             }
         }
 
+        _errorFileService.CreateBlankAsync("CERT");
         throw new InvalidOperationException("No valid certificate found.");
     }
 }

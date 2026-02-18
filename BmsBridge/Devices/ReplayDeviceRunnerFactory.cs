@@ -33,10 +33,10 @@ public sealed class ReplayDeviceRunnerFactory : IDeviceRunnerFactory
             _deviceHealthRegistry,
             _loggerFactory.CreateLogger<DeviceHttpExecutor>(),
             deviceSettings.IP,
-            deviceSettings.DeviceType
+            deviceSettings.device_type
         );
 
-        switch (deviceSettings.DeviceType)
+        switch (deviceSettings.device_type)
         {
             case BmsType.EmersonE2:
                 return new E2DeviceRunner(
@@ -66,7 +66,7 @@ public sealed class ReplayDeviceRunnerFactory : IDeviceRunnerFactory
                     _iotDevice
                 );
             default:
-                throw new NotImplementedException($"Device type {deviceSettings.DeviceType} is not implemented.");
+                throw new NotImplementedException($"Device type {deviceSettings.device_type} is not implemented.");
         }
     }
 }

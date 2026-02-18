@@ -4,6 +4,7 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
 {
     private readonly IDeviceHealthRegistry _registry;
     private readonly ILogger<CircuitBreakerService> _logger;
+    private readonly IErrorFileService _errorFileService;
 
     private readonly int _failureThreshold;
     private readonly TimeSpan _openDuration = TimeSpan.FromMinutes(30);
@@ -11,11 +12,13 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
     public CircuitBreakerService(
         IOptions<GeneralSettings> generalSettings,
         IDeviceHealthRegistry registry,
-        ILogger<CircuitBreakerService> logger)
+        ILogger<CircuitBreakerService> logger,
+        IErrorFileService errorFileService)
     {
         _failureThreshold = generalSettings.Value.http_retry_count;
         _registry = registry;
         _logger = logger;
+        _errorFileService = errorFileService;
     }
 
     public void EvaluateAndUpdate(DeviceHealthSnapshot snapshot)
@@ -45,6 +48,7 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
                 snapshot.DeviceIp, snapshot.ConsecutiveFailures, _openDuration.TotalMinutes);
 
             _registry.SetCircuitState(snapshot.DeviceIp, DeviceCircuitState.Open);
+            _errorFileService.CreateBlankAsync($"{snapshot.DeviceIp}_BMS");
         }
     }
 
@@ -75,6 +79,7 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
                 snapshot.DeviceIp);
 
             _registry.SetCircuitState(snapshot.DeviceIp, DeviceCircuitState.Closed);
+            _errorFileService.RemoveAsync($"{snapshot.DeviceIp}_BMS");
             return;
         }
 

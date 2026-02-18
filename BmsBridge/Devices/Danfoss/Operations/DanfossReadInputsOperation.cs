@@ -9,13 +9,10 @@ public sealed class DanfossReadInputsOperation : DanfossBaseDeviceOperation
     {
     }
 
-    protected override JsonArray? GetRelevantData(JsonNode? json)
+    protected override JsonArray GetRelevantData(JsonNode? json)
     {
-        var response = json?["resp"]?["input"] as JsonArray;
+        var node = json?["resp"]?["input"];
 
-        if (response is null)
-            return new JsonArray();
-
-        return response;
+        return EnforceData(node);
     }
 }

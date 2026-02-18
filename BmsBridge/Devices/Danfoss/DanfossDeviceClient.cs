@@ -29,6 +29,11 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
     private List<JsonObject> _condensers = new();
     private JsonObject? _meters;
     private List<JsonObject> _alarms = new();
+    private List<JsonObject> _sensor = new();
+    private List<JsonObject> _input = new();
+    private List<JsonObject> _relay = new();
+    private List<JsonObject> _var_out = new();
+    private List<JsonObject> _lists = new();
 
     public DanfossDeviceClient(
         Uri endpoint,
@@ -94,6 +99,13 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         _lightingZones = await ReadLightingZonesAsync(ct);
         _meters = await ReadMetersAsync(ct);
         _alarms = await ReadAlarmsAsync(ct);
+        _sensor = await ReadSensorAsync(ct);
+        _input = await ReadInputAsync(ct);
+        _var_out = await ReadVarOutAsync(ct);
+        _relay = await ReadRelayAsync(ct);
+
+        // EXPERIMENTAL
+        _lists = await ReadListAsync(ct);
 
         _hvac.ForEach(_polledData.Add);
         _hvacs.ForEach(_polledData.Add);
@@ -107,6 +119,11 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         _lightingZones.ForEach(_polledData.Add);
         _polledData.Add(_meters);
         _alarms.ForEach(_polledData.Add);
+        _sensor.ForEach(_polledData.Add);
+        _input.ForEach(_polledData.Add);
+        _var_out.ForEach(_polledData.Add);
+        _relay.ForEach(_polledData.Add);
+        _lists.ForEach(_polledData.Add);
 
         var diff = _dataWarehouse.ProcessIncoming(_polledData);
         await _iotDevice.SendMessageAsync(diff, ct);
@@ -161,12 +178,56 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         return InjectedNodetypeParse(result, "2");
     }
 
+    private async Task<List<JsonObject>> ReadSensorAsync(CancellationToken ct = default)
+    {
+        var addresses = new List<(string node, string mod, string point)>();
+
+        foreach (var entry in _sensors)
+        {
+            var node = entry["data"]?["node"]?.GetValue<string>();
+            var mod = entry["data"]?["mod"]?.GetValue<string>();
+            var point = entry["data"]?["point"]?.GetValue<string>();
+
+            if (node is null || mod is null || point is null)
+                continue;
+
+            var address = (node, mod, point);
+            addresses.Add(address);
+        }
+
+        var op = new DanfossReadSensorOperation(_endpoint, addresses, _loggerFactory);
+        var response = await op.ExecuteAsync(_pipelineExecutor, ct);
+        return DynamicAddressParseNoNT(response, "2");
+    }
+
     private async Task<List<JsonObject>> ReadInputsAsync(CancellationToken ct = default)
     {
         var op = new DanfossReadInputsOperation(_endpoint, _loggerFactory);
         var result = await op.ExecuteAsync(_pipelineExecutor, ct);
 
         return InjectedNodetypeParse(result, "0");
+    }
+
+    private async Task<List<JsonObject>> ReadInputAsync(CancellationToken ct = default)
+    {
+        var addresses = new List<(string node, string mod, string point)>();
+
+        foreach (var entry in _inputs)
+        {
+            var node = entry["data"]?["node"]?.GetValue<string>();
+            var mod = entry["data"]?["mod"]?.GetValue<string>();
+            var point = entry["data"]?["point"]?.GetValue<string>();
+
+            if (node is null || mod is null || point is null)
+                continue;
+
+            var address = (node, mod, point);
+            addresses.Add(address);
+        }
+
+        var op = new DanfossReadInputOperation(_endpoint, addresses, _loggerFactory);
+        var response = await op.ExecuteAsync(_pipelineExecutor, ct);
+        return DynamicAddressParseNoNT(response, "0");
     }
 
     private async Task<List<JsonObject>> ReadRelaysAsync(CancellationToken ct = default)
@@ -177,12 +238,56 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         return InjectedNodetypeParse(result, "1");
     }
 
+    private async Task<List<JsonObject>> ReadRelayAsync(CancellationToken ct = default)
+    {
+        var addresses = new List<(string node, string mod, string point)>();
+
+        foreach (var entry in _sensors)
+        {
+            var node = entry["data"]?["node"]?.GetValue<string>();
+            var mod = entry["data"]?["mod"]?.GetValue<string>();
+            var point = entry["data"]?["point"]?.GetValue<string>();
+
+            if (node is null || mod is null || point is null)
+                continue;
+
+            var address = (node, mod, point);
+            addresses.Add(address);
+        }
+
+        var op = new DanfossReadRelayOperation(_endpoint, addresses, _loggerFactory);
+        var response = await op.ExecuteAsync(_pipelineExecutor, ct);
+        return DynamicAddressParseNoNT(response, "1");
+    }
+
     private async Task<List<JsonObject>> ReadVarOutsAsync(CancellationToken ct = default)
     {
         var op = new DanfossReadVarOutsOperation(_endpoint, _loggerFactory);
         var result = await op.ExecuteAsync(_pipelineExecutor, ct);
 
         return InjectedNodetypeParse(result, "3");
+    }
+
+    private async Task<List<JsonObject>> ReadVarOutAsync(CancellationToken ct = default)
+    {
+        var addresses = new List<(string node, string mod, string point)>();
+
+        foreach (var entry in _sensors)
+        {
+            var node = entry["data"]?["node"]?.GetValue<string>();
+            var mod = entry["data"]?["mod"]?.GetValue<string>();
+            var point = entry["data"]?["point"]?.GetValue<string>();
+
+            if (node is null || mod is null || point is null)
+                continue;
+
+            var address = (node, mod, point);
+            addresses.Add(address);
+        }
+
+        var op = new DanfossReadVarOutOperation(_endpoint, addresses, _loggerFactory);
+        var response = await op.ExecuteAsync(_pipelineExecutor, ct);
+        return DynamicAddressParseNoNT(response, "3");
     }
 
     // ------------------------------------------------------------
@@ -195,6 +300,43 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         var result = await op.ExecuteAsync(_pipelineExecutor, ct);
 
         return DynamicAddressParse(result);
+    }
+
+    private async Task<List<JsonObject>> ReadListAsync(CancellationToken ct = default)
+    {
+        var outList = new List<JsonObject>();
+
+        foreach (var hvacEntry in _hvac)
+        {
+            var node = hvacEntry["data"]?["@node"]?.GetValue<string>() ?? "0";
+            var nodeType = hvacEntry["data"]?["@nodetype"]?.GetValue<string>() ?? "0";
+
+            var op = new DanfossReadListOperation(
+                endpoint: _endpoint,
+                nodeType: nodeType,
+                tableAddress: "20021", // We have to guess this number. TODO: fix later
+                node: node,
+                combo: hvacEntry["data"]?["@combo"]?.GetValue<string>() ?? "0",
+                index: hvacEntry["data"]?["@index"]?.GetValue<string>() ?? "0",
+                bpIndex: hvacEntry["data"]?["@bpidx"]?.GetValue<string>() ?? "0",
+                argument1: hvacEntry["data"]?["@arg1"]?.GetValue<string>() ?? "0",
+                useParent: "0",
+                configType: "0",
+                sType: hvacEntry["data"]?["stype"]?.GetValue<string>() ?? "0",
+                subGroup: "0",
+                page: "0",
+                oldConfigType: "0",
+                isConfigure: "0",
+                group: "0",
+                loggerFactory: _loggerFactory
+            );
+
+            var result = await ControllerLevelParse(op, ct, $"list:{nodeType}:{node}:20021");
+
+            outList.Add(result);
+        }
+
+        return outList;
     }
 
     private async Task<JsonObject> ReadMetersAsync(CancellationToken ct = default)
@@ -442,6 +584,11 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         _condensers = new();
         _meters = null;
         _alarms = new();
+        _sensor = new();
+        _input = new();
+        _relay = new();
+        _var_out = new();
+        _lists = new();
     }
 
     private List<JsonObject> DynamicAddressParse(DeviceOperationResult<JsonNode?> result)
@@ -449,7 +596,11 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         var resultArray = result?.Data?.AsArray();
 
         if (!result!.Success || resultArray is null)
+        {
+
+            _logger.LogDebug("Either the request failed or the result array is null.");
             return new List<JsonObject>();
+        }
 
         var returnList = new List<JsonObject>();
 
@@ -457,7 +608,10 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         foreach (var entry in resultArray)
         {
             if (entry is null)
+            {
+                _logger.LogDebug("An entry in the result array was null.");
                 continue;
+            }
 
             var entryObj = entry.AsObject();
 
@@ -466,6 +620,52 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
                 !entryObj.TryGetPropertyValue("@mod", out var mod) ||
                 !entryObj.TryGetPropertyValue("@point", out var point))
             {
+                _logger.LogDebug("An entry was missing one of: nodetype, node, mod, or point!");
+                continue;
+            }
+
+            var normalizedEntry = _normalizer.Normalize(
+                DeviceIp,
+                DeviceType.ToString(),
+                $"nt{nodeType}:n{node}:m{mod}:p{point}",
+                entryObj
+            );
+
+            returnList.Add(normalizedEntry);
+        }
+
+        return returnList;
+    }
+
+    private List<JsonObject> DynamicAddressParseNoNT(DeviceOperationResult<JsonNode?> result, string nodeType)
+    {
+        var resultArray = result?.Data?.AsArray();
+
+        if (!result!.Success || resultArray is null)
+        {
+
+            _logger.LogDebug("Either the request failed or the result array is null.");
+            return new List<JsonObject>();
+        }
+
+        var returnList = new List<JsonObject>();
+
+
+        foreach (var entry in resultArray)
+        {
+            if (entry is null)
+            {
+                _logger.LogDebug("An entry in the result array was null.");
+                continue;
+            }
+
+            var entryObj = entry.AsObject();
+
+            if (!entryObj.TryGetPropertyValue("@node", out var node) ||
+                !entryObj.TryGetPropertyValue("@mod", out var mod) ||
+                !entryObj.TryGetPropertyValue("@point", out var point))
+            {
+                _logger.LogDebug("An entry was missing one of: nodetype, node, mod, or point!");
                 continue;
             }
 
@@ -487,7 +687,10 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         var resultArray = result?.Data?.AsArray();
 
         if (!result!.Success || resultArray is null)
+        {
+            _logger.LogDebug("Either the request failed or the result array is null.");
             return new List<JsonObject>();
+        }
 
         var returnList = new List<JsonObject>();
 
@@ -495,7 +698,10 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
         foreach (var entry in resultArray)
         {
             if (entry is null)
+            {
+                _logger.LogDebug("An entry in the result array was null.");
                 continue;
+            }
 
             var entryObj = entry.AsObject();
 
@@ -503,6 +709,7 @@ public sealed class DanfossDeviceClient : BaseDeviceClient
                 !entryObj.TryGetPropertyValue("mod", out var mod) ||
                 !entryObj.TryGetPropertyValue("point", out var point))
             {
+                _logger.LogDebug("An entry is missing one of: node, mod, point!");
                 continue;
             }
 

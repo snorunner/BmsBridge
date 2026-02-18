@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Options;
 
 public sealed class HealthTelemetryService : IHealthTelemetryService
 {
@@ -8,16 +9,21 @@ public sealed class HealthTelemetryService : IHealthTelemetryService
     private readonly INormalizerService _normalizer;
 
     private readonly ConcurrentDictionary<string, DeviceHealthSnapshot> _lastSent = new();
-    private readonly TimeSpan _heartbeatInterval = TimeSpan.FromMinutes(15);
+    private readonly TimeSpan _heartbeatInterval;
+    private readonly GeneralSettings _generalSettings;
 
     public HealthTelemetryService(
         IIotDevice iotDevice,
         ILogger<HealthTelemetryService> logger,
-        INormalizerService normalizerService)
+        INormalizerService normalizerService,
+        IOptions<GeneralSettings> generalSettings)
     {
         _iotDevice = iotDevice;
         _logger = logger;
         _normalizer = normalizerService;
+        _generalSettings = generalSettings.Value;
+        var heartbeatInterval = _generalSettings.health_telemetry_max_interval_seconds;
+        _heartbeatInterval = TimeSpan.FromSeconds(heartbeatInterval);
     }
 
     public async Task SendSnapshotAsync(IReadOnlyCollection<DeviceHealthSnapshot> snapshots, CancellationToken ct = default)
@@ -53,8 +59,7 @@ public sealed class HealthTelemetryService : IHealthTelemetryService
             return true;
 
         // Failure threshold crossed
-        if (snapshot.ConsecutiveFailures >= 5 &&
-            last.ConsecutiveFailures < 5)
+        if (snapshot.ConsecutiveFailures > 1)
             return true;
 
         // Recovery

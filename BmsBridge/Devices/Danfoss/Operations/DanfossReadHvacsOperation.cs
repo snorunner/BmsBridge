@@ -9,13 +9,10 @@ public sealed class DanfossReadHvacsOperation : DanfossBaseDeviceOperation
     {
     }
 
-    protected override JsonArray? GetRelevantData(JsonNode? json)
+    protected override JsonArray GetRelevantData(JsonNode? json)
     {
-        var response = json?["resp"]?["hvacs"]?["hvac"] as JsonArray;
+        var node = json?["resp"]?["hvacs"]?["hvac"];
 
-        if (response is null)
-            return new JsonArray();
-
-        return response;
+        return EnforceData(node);
     }
 }

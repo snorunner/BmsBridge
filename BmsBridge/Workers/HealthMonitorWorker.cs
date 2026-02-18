@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 public sealed class HealthMonitorWorker : BackgroundService
 {
     private readonly ILogger<DeviceWorker> _logger;
@@ -7,6 +9,7 @@ public sealed class HealthMonitorWorker : BackgroundService
     private readonly IHealthTelemetryService _healthTelemetryService;
     private readonly IRunnerControlService _runnerControlService;
     private readonly IDeviceRunnerRegistry _deviceRunnerRegistry;
+    private readonly ConcurrentDictionary<string, DeviceHealthSnapshot> _lastLogged = new();
 
     public HealthMonitorWorker(
         IDeviceHealthRegistry deviceHealthRegistry,
@@ -38,10 +41,32 @@ public sealed class HealthMonitorWorker : BackgroundService
             {
                 _circuitBreaker.EvaluateAndUpdate(snapshot);
                 _runnerControlService.ApplyControl(snapshot);
-                _logger.LogDebug("Device health: {@Snap}", snapshot);
+
+                if (ShouldLog(snapshot))
+                    _logger.LogDebug("Device health: {@Snap}", snapshot);
             }
 
             await _healthTelemetryService.SendSnapshotAsync(snapshots, stoppingToken);
         }
+    }
+
+    private bool ShouldLog(DeviceHealthSnapshot snapshot)
+    {
+        if (!_lastLogged.TryGetValue(snapshot.DeviceIp, out var last))
+        {
+            _lastLogged[snapshot.DeviceIp] = snapshot;
+            return true;
+        }
+
+        // Only log when something meaningful changes
+        if (snapshot.CircuitState != last.CircuitState ||
+            snapshot.LastErrorType != last.LastErrorType ||
+            snapshot.ConsecutiveFailures != last.ConsecutiveFailures)
+        {
+            _lastLogged[snapshot.DeviceIp] = snapshot;
+            return true;
+        }
+
+        return false;
     }
 }

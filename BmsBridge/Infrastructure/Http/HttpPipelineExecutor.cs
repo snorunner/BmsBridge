@@ -72,14 +72,14 @@ public sealed class HttpPipelineExecutor : IHttpPipelineExecutor, IDisposable
             );
         }
 
-        // On development, save the response for replay and testing TODO re-enable if needed later
-        // if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Name is not null)
-        // {
-        //     var text = await response.Content.ReadAsStringAsync();
-        //
-        //     if (!string.IsNullOrEmpty(text))
-        //         await File.WriteAllTextAsync($"/home/henry/Projects/BmsBridge/BmsBridge/ReplayData/{Name}.txt", text);
-        // }
+        // On development, save the response for replay and testing
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Name is not null)
+        {
+            var text = await response.Content.ReadAsStringAsync();
+
+            if (!string.IsNullOrEmpty(text))
+                await File.WriteAllTextAsync($"/home/henry/Projects/BmsBridge/BmsBridge/ReplayData/{Name}.txt", text);
+        }
 
         return response;
     }
