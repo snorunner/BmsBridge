@@ -21,6 +21,29 @@ public class ErrorFileService : IErrorFileService
         return Task.CompletedTask;
     }
 
+    public Task CreateOrAppendAsync(string name, string content)
+    {
+        string filePath = Path.Combine(_root, $"{name}.err");
+
+        _logger.LogInformation($"Writing to {name}.err.");
+
+        // Ensure directory exists (safe guard)
+        Directory.CreateDirectory(_root);
+
+        if (!File.Exists(filePath))
+        {
+            // Create and write initial content
+            File.WriteAllText(filePath, content);
+        }
+        else
+        {
+            // Append newline + content
+            File.AppendAllText(filePath, Environment.NewLine + content);
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task RemoveAsync(string name)
     {
         string filePath = Path.Combine(_root, $"{name}.err");

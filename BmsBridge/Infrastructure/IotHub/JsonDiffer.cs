@@ -64,9 +64,18 @@ public static class JsonDiffer
                 JsonNode? baseChild = i < baseArr.Count ? baseArr[i] : null;
                 var childDiff = DiffNodes(baseChild, incArr[i], includeSet);
 
-                diffArr.Add(childDiff);
-            }
+                if (childDiff is JsonObject objDiff)
+                {
+                    if (!objDiff.ContainsKey("data"))
+                        continue;
 
+                    if (objDiff["data"] is JsonObject dataObj && dataObj.Count == 0)
+                        continue;
+
+                    diffArr.Add(childDiff);
+                }
+                // diffArr.Add(childDiff);
+            }
             return diffArr;
         }
 

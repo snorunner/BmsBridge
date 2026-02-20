@@ -67,6 +67,8 @@ public sealed class DeviceWorker : BackgroundService
                 await Task.WhenAll(tasks);
                 continue;
             }
+
+            _logger.LogInformation($"Performing soft reset after {restartAfter} hours.");
         }
     }
 }

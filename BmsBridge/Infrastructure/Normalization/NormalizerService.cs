@@ -46,7 +46,7 @@ public sealed class NormalizerService : INormalizerService
                 {
                     var key = string.IsNullOrEmpty(prefix)
                         ? kvp.Key
-                        : $"{prefix}.{kvp.Key}";
+                        : $"{prefix}__{kvp.Key}";
 
                     if (kvp.Value is null)
                     {
