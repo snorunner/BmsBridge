@@ -1,5 +1,5 @@
 # BmsBridge  
-Version **0.2.0**
+Version **0.3.0**
 
 BmsBridge is a service that polls Building Management System (BMS) controllers and sends their data to Azure IoT Hub. It is designed to run continuously with minimal configuration and a strong focus on controller safety.
 

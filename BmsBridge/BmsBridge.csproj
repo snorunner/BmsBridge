@@ -7,7 +7,10 @@
     <UserSecretsId>dotnet-BmsBridge-c322b1c1-d95c-40ab-bd54-df37d6fc65a8</UserSecretsId>
 
     <!-- Versioning -->
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
+    <Authors>Henry West</Authors>
+    <Description>Unified IoT bridge for BMS telemetry</Description>
+    <Product>BmsBridge</Product>
     <InformationalVersion>$(Version)+$(SourceRevisionId)</InformationalVersion>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
