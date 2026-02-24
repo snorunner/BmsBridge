@@ -74,6 +74,29 @@ public sealed class AzureIotDevice : IIotDevice, IAsyncDisposable
     //         yield return new JsonObject { ["value"] = diff };
     //     }
     // }
+    //
+    // private static IEnumerable<JsonObject> NormalizeForIoTHub(JsonNode diff)
+    // {
+    //     if (diff is JsonArray arr)
+    //     {
+    //         foreach (var item in arr)
+    //         {
+    //             if (item is null)
+    //                 continue;
+    //
+    //             yield return item as JsonObject
+    //                 ?? new JsonObject { ["value"] = item };
+    //         }
+    //     }
+    //     else if (diff is JsonObject obj)
+    //     {
+    //         yield return obj;
+    //     }
+    //     else
+    //     {
+    //         yield return new JsonObject { ["value"] = diff };
+    //     }
+    // }
 
     private static IEnumerable<JsonObject> NormalizeForIoTHub(JsonNode diff)
     {
@@ -84,17 +107,25 @@ public sealed class AzureIotDevice : IIotDevice, IAsyncDisposable
                 if (item is null)
                     continue;
 
-                yield return item as JsonObject
-                    ?? new JsonObject { ["value"] = item };
+                var obj = item as JsonObject
+                          ?? new JsonObject { ["value"] = item };
+
+                // FILTER HERE
+                if (!obj.ContainsKey("data"))
+                    continue;
+
+                yield return obj;
             }
         }
         else if (diff is JsonObject obj)
         {
-            yield return obj;
+            if (obj.ContainsKey("data"))
+                yield return obj;
         }
         else
         {
-            yield return new JsonObject { ["value"] = diff };
+            // Non-object payloads cannot have "data", so skip them
+            yield break;
         }
     }
 
