@@ -1,12 +1,10 @@
+
 # BmsBridge  
 Version **0.3.0**
 
+
+**BmsBridge** 
 BmsBridge is a service that polls Building Management System (BMS) controllers and sends their data to Azure IoT Hub. It is designed to run continuously with minimal configuration and a strong focus on controller safety.
-
----
-
-## What This Program Does
-
 - Connects to supported BMS controllers  
 - Automatically discovers important data points  
 - Polls the controllers on a schedule  
@@ -14,7 +12,6 @@ BmsBridge is a service that polls Building Management System (BMS) controllers a
 - Protects controllers from overload using a built‑in health monitor  
 - Writes logs and error markers for troubleshooting  
 
----
 
 ## Supported Controllers
 
@@ -23,13 +20,94 @@ BmsBridge is a service that polls Building Management System (BMS) controllers a
 - Emerson E3  
 - More devices coming in future versions  
 
+
 ---
 
-## Required Configuration
+## Table of Contents
 
+- [High-level overview](#high-level-overview)
+- [Core concepts](#core-concepts)
+- [Configuration model](#configuration-model)
+- [Running the service](#running-the-service)
+- [Log Files](#log-files)
+- [Error Marker files](#error-markerfiles)
+- [Runtime architecture](#runtime-architecture)
+- [Polling lifecycle](#polling-lifecycle)
+- [Health monitoring & circuit breaking](#health-monitoring--circuit-breaking)
+- [Repository structure](#repository-structure)
+- [Startup behavior](#startup-behavior)
+- [Azure integration](#azure-integration)
+- [Replay / development mode](#replay--development-mode)
+- [Troubleshooting](#troubleshooting)
+- [Building a Single File Executable](#building-a-single-file-executable)
+- [Support](#support)
+
+---
+
+## High-level overview
+
+At a high level, BmsBridge does the following:
+
+1. Reads a list of BMS devices (IP + device type) from configuration
+2. Starts one independent **polling loop per device**
+3. Periodically queries each device via HTTP
+4. Normalizes the raw responses into a consistent JSON format
+5. Diffs each poll against the previous poll
+6. Publishes **only changes** to Azure IoT Hub
+7. Continuously monitors device health and dynamically pauses polling when devices are unhealthy
+
+The system is intentionally **pull-based**, **fault-tolerant**, and **conservative** in how it interacts with field devices.
+
+---
+
+## Core concepts
+
+### Polling
+Polling is the act of repeatedly querying a device for its current state.  
+In this system, polling is:
+- continuous
+- stateful (each poll is compared to the previous poll)
+- isolated per device (one failing device does not affect others)
+
+### Device runner
+A **device runner** is a long-lived background task responsible for exactly one device IP.  
+Each runner:
+- owns its polling loop
+- can be paused, resumed, or put into probe mode
+- tracks its own health via shared infrastructure
+
+### Device client
+A **device client** contains the vendor-specific logic required to talk to a controller (E2, E3, Danfoss).  
+It knows:
+- which endpoints to call
+- how to parse responses
+- how to assemble a logical snapshot of the device
+
+### Diff-based telemetry
+Instead of publishing full snapshots every time, BmsBridge:
+- stores the previous normalized payload in memory
+- computes a JSON diff against the new payload
+- publishes only changed fields
+
+This dramatically reduces telemetry volume and downstream noise.
+
+---
+
+## Configuration model
 Before running BmsBridge, you **must** edit the `appsettings.json` file located next to the executable.
 
 If the file is missing, the program will create one with default values.
+
+### Configuration sections
+
+| Section | Purpose |
+|------|------|
+| `AzureSettings` | Azure IoT / DPS / Key Vault wiring |
+| `NetworkSettings` | Defines which devices exist |
+| `GeneralSettings` | Controls polling & HTTP behavior |
+| `LoggingSettings` | Logging verbosity & file paths |
+
+---
 
 ### 1. Azure Settings (Required)
 
@@ -80,7 +158,6 @@ Controls polling behavior and timeouts.
   "use_cloud": true
 }
 ```
-
 When use_cloud is false, telemetry will be dumped **without truncation** to a jsonl file. This is useful for testing and seeing local payloads.
 
 ### 4. Logging Settings
@@ -99,8 +176,33 @@ Recommended options for "MinimumLevel" are "Information" and "Debug"
 
 ---
 
-## How to Run the Program
+### Key principle
+**Configuration is a deployment artifact, not a source artifact.**
 
+The repository does not ship with a real `appsettings.json`.
+
+---
+
+### First-run behavior
+
+On startup:
+- If `appsettings.json` does not exist:
+  - a default file is generated
+  - the program exits
+- If it exists:
+  - missing keys are merged in automatically
+  - existing values are preserved
+
+This allows safe upgrades without manual config migration.
+
+---
+
+
+
+
+## Running the service
+
+### First run
 Double‑click the executable or run it from a command prompt. You may also register it as an nssm service.
 
 The program will:
@@ -112,7 +214,17 @@ The program will:
 
 The program is designed to run indefinitely.
 
----
+Running from the command line:
+```bash
+dotnet run
+```
+
+### Configure
+
+Edit appsettings.json:
+add device IPs
+add Azure configuration
+adjust polling parameters if needed
 
 ## Log Files
 
@@ -120,35 +232,203 @@ Logs are written to:
 
 ```
 logs/app.log
-```
 
-If you need support, send this file to your administrator or support contact.
-
----
 
 ## Error Marker Files (`*.err`)
 
 The program may create small `.err` files next to the executable.  
 These indicate that a device is temporarily paused for safety.
 
-- They are created and removed automatically  
-- They contain no data  
-- They are safe to delete when the program is stopped  
+
+
+## Runtime architecture
+┌────────────┐
+│ Program.cs │
+└─────┬──────┘
+      │
+      ▼
+┌──────────────────┐
+│ DeviceWorker     │   ← creates & supervises runners
+└─────┬────────────┘
+      │
+      ▼
+┌──────────────────┐
+│ DeviceRunner     │   ← one per device IP
+│ (BaseDeviceRunner)│
+└─────┬────────────┘
+      │
+      ▼
+┌──────────────────┐
+│ DeviceClient     │   ← vendor-specific logic
+└─────┬────────────┘
+      │
+      ▼
+┌──────────────────┐
+│ HTTP Pipeline    │   ← throttle / retry / timeout
+└─────┬────────────┘
+      │
+      ▼
+┌──────────────────┐
+│ Normalization    │
+└─────┬────────────┘
+      │
+      ▼
+┌──────────────────┐
+│ Diff + IoT Send  │
+└──────────────────┘
+
+### In Parallel
+┌────────────────────┐
+│ HealthMonitorWorker│
+└─────┬──────────────┘
+      │
+      ▼
+┌────────────────────┐
+│ Circuit Breaker    │
+└─────┬──────────────┘
+      │
+      ▼
+┌────────────────────┐
+│ Runner Control     │  ← pause / resume / probe
+└────────────────────┘
+
+
 
 ---
 
-## Safety Features
+## Polling lifecycle
 
-BMS controllers can be sensitive to frequent polling.  
+Each device follows this lifecycle:
+
+### 1. Initialization (once per runner)
+Before polling begins, the device client performs any required discovery:
+- E2: controller list, cell list, index mappings
+- E3 / Danfoss: static metadata and supported endpoints
+
+Initialization failures are treated as health failures.
+
+---
+
+### 2. Poll loop (continuous)
+
+Each poll iteration:
+1. Executes a sequence of HTTP operations against the device
+2. Records latency and success/failure for each request
+3. Aggregates raw responses into a logical snapshot
+4. Normalizes the snapshot into flattened JSON
+5. Diffs against the previous snapshot
+6. Sends changes to IoT Hub (if any)
+7. Waits before starting the next poll
+
+Polling frequency is governed by configuration and health state.
+
+---
+
+### 3. Soft reset
+
+At a configurable interval (`soft_reset_interval_hours`), all runners are:
+- cancelled
+- reconstructed
+- restarted cleanly
+
+This mitigates long-running edge cases such as:
+- leaked resources
+- stuck HTTP connections
+- partial device state corruption
+
+---
+
+## Health monitoring & circuit breaking
+
+Health is a **first-class concern** in this system. BMS controllers can be sensitive to frequent polling.  
 To protect them, BmsBridge includes:
 
-- A **health monitor worker**  
-- A **circuit breaker** that pauses polling when needed  
-- Automatic recovery when the controller becomes healthy again  
+### Health tracking
+Every HTTP request:
+- is timed
+- is classified into a success or error type
+- updates a per-device health snapshot
 
-These features run automatically and require no user action.
+Health snapshots track:
+- consecutive failures
+- last success timestamp
+- last failure timestamp
+- last observed latency
+- current circuit state
 
 ---
+
+### Circuit breaker behavior
+
+Each device operates in one of three states:
+
+- **Closed** – normal polling
+- **Open** – polling paused after repeated failures
+- **Half-open** – limited probing to test recovery
+
+The health monitor:
+- evaluates circuit state periodically
+- pauses or resumes runners accordingly
+- prevents unhealthy devices from being hammered continuously
+
+This logic is centralized and independent from polling code. These features run automatically and require no user action.
+
+---
+
+
+## Repository structure
+
+BmsBridge/
+├── Configuration/        # Typed config models + config bootstrap
+├── Workers/              # Hosted background services
+├── Devices/              # Polling runners, clients, operations
+│   ├── E2/
+│   ├── E3/
+│   └── Danfoss/
+├── Infrastructure/
+│   ├── Http/             # HTTP pipeline (retry/throttle/timeout)
+│   ├── HealthMonitor/    # Health, circuit breaker, runner control
+│   ├── IotHub/           # IoT Hub + diff logic
+│   └── Normalization/    # JSON flattening & envelopes
+├── Resources/            # Embedded static data
+├── Program.cs            # Application entry point
+└── BmsBridge.Tests/      # Unit tests
+
+
+---
+
+## Startup behavior
+
+At startup, the application:
+
+1. Ensures configuration exists and is valid
+2. Configures logging
+3. Registers all services via dependency injection
+4. Starts hosted workers:
+   - `DeviceWorker`
+   - `HealthMonitorWorker`
+
+No polling begins until startup completes successfully.
+
+---
+
+## Azure integration
+
+Telemetry is sent to **Azure IoT Hub** using **DPS (Device Provisioning Service)**.
+
+Key points:
+- No secrets are stored in configuration
+- DPS enrollment group key is retrieved from Azure Key Vault
+- Authentication to Key Vault uses a client certificate
+- Device-specific symmetric keys are derived via HMAC
+- Messages are chunked to remain under IoT Hub size limits
+
+Azure integration is isolated behind `IIotDevice`.
+
+---
+
+
+
 
 ## Replay Mode (Optional)
 
@@ -162,7 +442,6 @@ BmsBridge.exe --replay
 ```
 
 Most users will never need this.
-
 ---
 
 ## Troubleshooting
@@ -180,7 +459,6 @@ Most users will never need this.
 - This is usually due to overload  
 - Check the `.err` file and logs for details  
 
----
 
 ## Building a Single‑File Executable (Advanced)
 
@@ -201,4 +479,3 @@ bin/Release/net10.0/win-x64/publish/
 ## Support
 
 For assistance, contact your system administrator.
-
