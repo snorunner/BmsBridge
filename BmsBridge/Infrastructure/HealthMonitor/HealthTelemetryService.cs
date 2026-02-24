@@ -59,7 +59,7 @@ public sealed class HealthTelemetryService : IHealthTelemetryService
             return true;
 
         // Failure threshold crossed
-        if (snapshot.ConsecutiveFailures > 1)
+        if (snapshot.ConsecutiveFailures > 1 && snapshot.ConsecutiveFailures != last.ConsecutiveFailures)
             return true;
 
         // Recovery
