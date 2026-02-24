@@ -53,5 +53,6 @@ try
 }
 finally
 {
+    Thread.Sleep(3000); // for unconfigured nssm
     Environment.Exit(0); // for unconfigured nssm
 }

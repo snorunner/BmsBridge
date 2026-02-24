@@ -48,7 +48,8 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
                 snapshot.DeviceIp, snapshot.ConsecutiveFailures, _openDuration.TotalMinutes);
 
             _registry.SetCircuitState(snapshot.DeviceIp, DeviceCircuitState.Open);
-            _errorFileService.CreateBlankAsync($"BMS_{snapshot.DeviceIp}");
+            var dateTime = DateTime.UtcNow;
+            _errorFileService.CreateOrAppendAsync($"BMS_{snapshot.DeviceIp}", $"Shut off at {dateTime:O} for {_openDuration.TotalMinutes} minutes.");
         }
     }
 
@@ -79,7 +80,8 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
                 snapshot.DeviceIp);
 
             _registry.SetCircuitState(snapshot.DeviceIp, DeviceCircuitState.Closed);
-            _errorFileService.RemoveAsync($"BMS_{snapshot.DeviceIp}");
+            var dateTime = DateTime.UtcNow;
+            _errorFileService.CreateOrAppendAsync($"BMS_{snapshot.DeviceIp}", $"Shut off at {dateTime:O} for {_openDuration.TotalMinutes} minutes.");
             return;
         }
 
