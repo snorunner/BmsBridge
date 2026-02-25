@@ -8,6 +8,7 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
 
     private readonly int _failureThreshold;
     private readonly TimeSpan _openDuration = TimeSpan.FromMinutes(30);
+    private readonly GeneralSettings _generalSettings;
 
     public CircuitBreakerService(
         IOptions<GeneralSettings> generalSettings,
@@ -16,6 +17,7 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
         IErrorFileService errorFileService)
     {
         _failureThreshold = generalSettings.Value.http_retry_count;
+        _generalSettings = generalSettings.Value;
         _registry = registry;
         _logger = logger;
         _errorFileService = errorFileService;
@@ -43,12 +45,21 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
     {
         if (snapshot.ConsecutiveFailures >= _failureThreshold)
         {
+            var dateTime = DateTime.UtcNow;
+
+            if (_generalSettings.fail_fast) // stupid code for instant shutdown. really should try to convince them to not do this
+            {
+                _logger.LogCritical("Driver fatal shutdown due to any BMS-related issue.");
+                Thread.Sleep(3000); // for unconfigured nssm
+                _errorFileService.CreateOrAppendAsync($"FATAL_LOCK", $"{dateTime:O}");
+                Environment.Exit(0);
+            }
+
             _logger.LogWarning(
                 "Circuit OPEN for {Ip} due to {Failures} consecutive failures for {Duration} minutes",
                 snapshot.DeviceIp, snapshot.ConsecutiveFailures, _openDuration.TotalMinutes);
 
             _registry.SetCircuitState(snapshot.DeviceIp, DeviceCircuitState.Open);
-            var dateTime = DateTime.UtcNow;
             _errorFileService.CreateOrAppendAsync($"BMS_{snapshot.DeviceIp}", $"Shut off at {dateTime:O} for {_openDuration.TotalMinutes} minutes.");
         }
     }

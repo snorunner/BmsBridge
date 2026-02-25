@@ -40,15 +40,14 @@ builder.Services.AddHostedService<HealthMonitorWorker>();
 var app = builder.Build();
 
 // On fresh restart, clear all existing error files.
-using (var scope = app.Services.CreateScope())
-{
-    var svc = scope.ServiceProvider.GetRequiredService<IErrorFileService>();
-    await svc.CleanupAllAsync();
-}
-
-
 try
 {
+    using (var scope = app.Services.CreateScope())
+    {
+        var svc = scope.ServiceProvider.GetRequiredService<IErrorFileService>();
+        await svc.CleanupAllAsync();
+    }
+
     app.Run();
 }
 finally

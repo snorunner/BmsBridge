@@ -7,4 +7,6 @@ public record GeneralSettings
     public int health_telemetry_max_interval_seconds { get; init; } = 900;
     public bool keep_alive { get; init; }
     public bool use_cloud { get; init; } = true;
+    public bool fail_fast { get; init; } = false;
+    public int lock_file_minutes { get; init; } = 720;
 }

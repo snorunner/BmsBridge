@@ -1,13 +1,17 @@
+using Microsoft.Extensions.Options;
+
 public class ErrorFileService : IErrorFileService
 {
     private readonly string _root;
     private readonly ILogger<ErrorFileService> _logger;
+    private readonly GeneralSettings _generalSettings;
 
-    public ErrorFileService(ILogger<ErrorFileService> logger)
+    public ErrorFileService(ILogger<ErrorFileService> logger, IOptions<GeneralSettings> generalSettings)
     {
         // Root directory where the executable lives
         _root = AppContext.BaseDirectory;
         _logger = logger;
+        _generalSettings = generalSettings.Value;
     }
 
     public Task CreateBlankAsync(string name)
@@ -61,7 +65,44 @@ public class ErrorFileService : IErrorFileService
         var files = Directory.GetFiles(_root, "*.err");
 
         foreach (var file in files)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(file);
+
+            if (fileName.Equals("FATAL_LOCK", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    // Read timestamp from file
+                    string content = File.ReadAllText(file).Trim();
+
+                    if (DateTime.TryParse(content, out DateTime timestamp))
+                    {
+                        var age = DateTime.Now - timestamp;
+
+                        if (age < TimeSpan.FromMinutes(_generalSettings.lock_file_minutes))
+                        {
+                            _logger.LogCritical(
+                                $"FATAL_LOCK.err is recent ({age.TotalMinutes:F0} minutes old).");
+
+                            throw new InvalidOperationException(
+                                "FATAL_LOCK indicates a fatal condition within the time period.");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("FATAL_LOCK.err exists but timestamp is invalid.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, "Error while processing FATAL_LOCK.err.");
+                    throw;
+                }
+            }
+
+            // Delete file after checks
             File.Delete(file);
+        }
 
         return Task.CompletedTask;
     }
