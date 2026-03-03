@@ -31,10 +31,10 @@ public sealed class StoreCertificateSource : ICertificateSource
 
         _logger.LogInformation("Store opened. Total certificates found: {Count}", store.Certificates.Count);
 
-        foreach (var cert in store.Certificates)
-        {
-            _logger.LogInformation("Found certificate: {Subject}", cert.Subject);
-        }
+        // foreach (var cert in store.Certificates)
+        // {
+        //     _logger.LogInformation("Found certificate: {Subject}", cert.Subject);
+        // }
 
         var certs = store.Certificates
             .Find(X509FindType.FindBySubjectName, _subjectName, validOnly: false);
@@ -51,8 +51,9 @@ public sealed class StoreCertificateSource : ICertificateSource
         }
         else
         {
-            _logger.LogInformation("Selected certificate: {Subject}", selected.Subject);
-            _logger.LogInformation("Has private key: {HasPrivateKey}", selected.HasPrivateKey);
+            _logger.LogInformation("Found valid certificate!");
+            // _logger.LogInformation("Selected certificate: {Subject}", selected.Subject);
+            // _logger.LogInformation("Has private key: {HasPrivateKey}", selected.HasPrivateKey);
         }
 
         return selected;

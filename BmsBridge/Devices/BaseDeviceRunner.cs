@@ -11,6 +11,7 @@ public abstract class BaseDeviceRunner : IDeviceRunner
     private readonly object _stateLock = new();
     private RunnerState _state = RunnerState.Running;
     private CancellationTokenSource? _executionCts;
+    private readonly GeneralSettings _generalSettings;
 
     public string DeviceIp => _endpoint.Host;
 
@@ -20,7 +21,8 @@ public abstract class BaseDeviceRunner : IDeviceRunner
         IE2IndexMappingProvider indexProvider,
         INormalizerService normalizerService,
         ILoggerFactory loggerFactory,
-        IIotDevice iotDevice
+        IIotDevice iotDevice,
+        GeneralSettings generalSettings
             )
     {
         _endpoint = endpoint;
@@ -30,6 +32,7 @@ public abstract class BaseDeviceRunner : IDeviceRunner
         _loggerFactory = loggerFactory;
         _iotDevice = iotDevice;
         _logger = loggerFactory.CreateLogger(GetType());
+        _generalSettings = generalSettings;
     }
 
     protected void EnsureClient()
@@ -94,8 +97,9 @@ public abstract class BaseDeviceRunner : IDeviceRunner
                 await _bmsClient!.PollAsync(executionCt);
                 sw.Stop();
                 _logger.LogInformation($"Device {DeviceIp} finished polling. Took {sw.Elapsed.TotalSeconds:F2} seconds");
-                _logger.LogInformation($"Device {DeviceIp} is cooling down for 1 minute.");
-                await Task.Delay(60_000, ct);
+                _logger.LogInformation($"Device {DeviceIp} is cooling down for {_generalSettings.loop_delay_seconds} seconds.");
+                await Task.Delay(TimeSpan.FromSeconds(_generalSettings.loop_delay_seconds), ct);
+                // await Task.Delay(_generalSettings.loop_delay_seconds * 1000, ct);
             }
             catch (OperationCanceledException)
             {

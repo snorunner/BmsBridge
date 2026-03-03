@@ -45,7 +45,8 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
                     _indexProvider,
                     _normalizer,
                     _loggerFactory,
-                    _iotDevice
+                    _iotDevice,
+                    _generalSettings
                 );
             case BmsType.Danfoss:
                 return new DanfossDeviceRunner(
@@ -54,7 +55,8 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
                     _indexProvider,
                     _normalizer,
                     _loggerFactory,
-                    _iotDevice
+                    _iotDevice,
+                    _generalSettings
                 );
             case BmsType.EmersonE3:
                 return new E3DeviceRunner(
@@ -63,7 +65,8 @@ public sealed class DeviceRunnerFactory : IDeviceRunnerFactory
                     _indexProvider,
                     _normalizer,
                     _loggerFactory,
-                    _iotDevice
+                    _iotDevice,
+                    _generalSettings
                 );
             default:
                 throw new NotImplementedException($"Device type {deviceSettings.device_type} is not implemented.");

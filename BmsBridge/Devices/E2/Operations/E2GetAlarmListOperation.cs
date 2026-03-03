@@ -15,6 +15,13 @@ public sealed class E2GetAlarmListOperation : E2BaseDeviceOperation
 
     protected override JsonArray? GetRelevantData(JsonNode? json)
     {
-        return json?["result"]?["data"] as JsonArray;
+        try
+        {
+            return json?["result"]?["data"] as JsonArray;
+        }
+        catch
+        {
+            return new JsonArray();
+        }
     }
 }

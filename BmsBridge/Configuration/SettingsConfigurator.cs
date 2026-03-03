@@ -18,47 +18,11 @@ public static class SettingsConfigurator
             Environment.Exit(0);
         }
 
-        Reconcile(configPath);
+        // Reconcile(configPath);
     }
 
     private static void GenerateDefault(string configPath)
     {
-
-        // var defaultSerilog = new SerilogSettings
-        // {
-        //     Using = new()
-        //     {
-        //         "Serilog.Sinks.Console",
-        //         "Serilog.Sinks.File",
-        //         "Serilog.Formatting.Compact"
-        //     },
-        //     MinimumLevel = LogEventLevel.Debug,
-        //     WriteTo = new()
-        //     {
-        //         new SerilogSink
-        //         {
-        //             Name = "Console"
-        //         },
-        //         new SerilogSink
-        //         {
-        //             Name = "File",
-        //             Args = new SerilogSinkArgs
-        //             {
-        //                 Path = "logs/app.log",
-        //                 RollingInterval = RollingInterval.Day,
-        //                 FileSizeLimitBytes = 1_000_000,
-        //                 RetainedFileCountLimit = 7,
-        //                 Formatter = "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact",
-        //                 RollOnFileSizeLimit = false
-        //             }
-        //         }
-        //     },
-        //     Enrich = new() { "FromLogContext" },
-        //     Properties = new()
-        //     {
-        //         ["Application"] = "BmsBridge"
-        //     }
-        // };
 
         var defaultConfig = new
         {
@@ -78,42 +42,6 @@ public static class SettingsConfigurator
         var jsonText = File.ReadAllText(path);
 
         var existing = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonText)!;
-
-        // var defaultSerilog = new SerilogSettings
-        // {
-        //     Using = new()
-        //     {
-        //         "Serilog.Sinks.Console",
-        //         "Serilog.Sinks.File",
-        //         "Serilog.Formatting.Compact"
-        //     },
-        //     MinimumLevel = LogEventLevel.Debug,
-        //     WriteTo = new()
-        //     {
-        //         new SerilogSink
-        //         {
-        //             Name = "Console",
-        //         },
-        //         new SerilogSink
-        //         {
-        //             Name = "File",
-        //             Args = new SerilogSinkArgs
-        //             {
-        //                 Path = "logs/app.log",
-        //                 RollingInterval = RollingInterval.Day,
-        //                 FileSizeLimitBytes = 1_000_000,
-        //                 RetainedFileCountLimit = 7,
-        //                 Formatter = "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact",
-        //                 RollOnFileSizeLimit = false
-        //             }
-        //         }
-        //     },
-        //     Enrich = new() { "FromLogContext" },
-        //     Properties = new()
-        //     {
-        //         ["Application"] = "BmsBridge"
-        //     }
-        // };
 
         var defaultConfig = new
         {

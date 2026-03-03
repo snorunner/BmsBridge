@@ -6,13 +6,15 @@ public sealed class E3DeviceRunner : BaseDeviceRunner
         IE2IndexMappingProvider indexProvider,
         INormalizerService normalizerService,
         ILoggerFactory loggerFactory,
-        IIotDevice iotDevice
+        IIotDevice iotDevice,
+        GeneralSettings generalSettings
     ) : base(endpoint,
         pipelineExecutor,
         indexProvider,
         normalizerService,
         loggerFactory,
-        iotDevice
+        iotDevice,
+        generalSettings
     )
     { }
 

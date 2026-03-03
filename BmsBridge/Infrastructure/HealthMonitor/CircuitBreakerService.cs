@@ -47,9 +47,9 @@ public sealed class CircuitBreakerService : ICircuitBreakerService
         {
             var dateTime = DateTime.UtcNow;
 
-            if (_generalSettings.fail_fast) // stupid code for instant shutdown. really should try to convince them to not do this
+            if (snapshot.LastErrorType == DeviceErrorType.InternalException)
             {
-                _logger.LogCritical("Driver fatal shutdown due to any BMS-related issue.");
+                _logger.LogCritical("Driver fatal shutdown due to internal BMS-related issue.");
                 Thread.Sleep(3000); // for unconfigured nssm
                 _errorFileService.CreateOrAppendAsync($"FATAL_LOCK", $"{dateTime:O}");
                 Environment.Exit(0);

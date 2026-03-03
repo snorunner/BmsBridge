@@ -69,6 +69,9 @@ public sealed class DeviceWorker : BackgroundService
             }
 
             _logger.LogInformation($"Performing soft reset after {restartAfter} hours.");
+
+            _logger.LogInformation($"Waiting for {_generalSettings.loop_delay_seconds} seconds before soft reset");
+            await Task.Delay(TimeSpan.FromSeconds(_generalSettings.loop_delay_seconds), stoppingToken);
         }
     }
 }
